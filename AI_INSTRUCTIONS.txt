@@ -1,0 +1,24 @@
+# Project & AI Instructions for ecommerce_store
+
+## Project Purpose
+This is an ecommerce store project. The main goal is to create a functional online store.
+
+## My Preferences for Code Service
+When adding a new feature or fixing a bug, please do not just show code snippets. Instead, provide a ready-to-use `cat` command that will overwrite the entire relevant file with the fixed or new code. This allows me to copy and paste the command directly into my terminal to apply the changes.
+
+Example Format:
+cat > [filename] << 'EOF'
+[Complete content of the fixed/new file goes here]
+EOF
+
+## Specific Workflow
+1.  Always provide the complete content for any file that needs to be changed.
+2.  The command should use the `cat` command with a here-document (`<< 'EOF'`) as shown above.
+3.  This ensures the current file is overwritten with the corrected version.
+
+## Current Tech Stack
+- Flask
+- Flask-Babel (Please note the recent syntax change: use `@babel.locale_selector` instead of the old `@babel.localeselector`)
+
+## How to Use These Instructions
+Please read this file before providing any code solutions. Adhere to the workflow described above.
