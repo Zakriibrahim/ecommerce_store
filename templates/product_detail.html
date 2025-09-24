@@ -5,6 +5,17 @@
     <div class="col-md-6 text-center">
         <div class="product-image" style="font-size: 8rem;">{{ product.image }}</div>
         
+        <!-- Wishlist Button for detail page -->
+        {% if session.get('user_id') %}
+        <div class="mt-3">
+            <button class="btn btn-outline-danger add-to-wishlist-detail" 
+                    data-product-id="{{ product.id }}"
+                    onclick="addToWishlist({{ product.id }}, this)">
+                <i class="fas fa-heart"></i> {{ t('add_to_wishlist') if t('add_to_wishlist') else 'Add to Wishlist' }}
+            </button>
+        </div>
+        {% endif %}
+        
         <!-- Ratings Summary -->
         <div class="mt-3">
             {% set avg_rating = product.reviews|sum(attribute='rating') / product.reviews|length if product.reviews else 0 %}

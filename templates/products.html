@@ -18,6 +18,13 @@
     {% for product in products %}
     <div class="col-md-4 mb-4">
         <div class="card product-card h-100">
+            <!-- Wishlist Button -->
+            <button class="wishlist-btn {% if session.get('user_id') %}add-to-wishlist{% endif %}" 
+                    data-product-id="{{ product.id }}"
+                    onclick="addToWishlist({{ product.id }}, this)">
+                <i class="fas fa-heart{% if session.get('user_id') %}{% else %}-broken{% endif %}"></i>
+            </button>
+            
             <div class="card-body text-center d-flex flex-column">
                 <div class="product-image">{{ product.image }}</div>
                 <h5 class="card-title">{{ product.name }}</h5>

@@ -76,11 +76,42 @@
             height: 100%;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
+            position: relative;
         }
 
         .product-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .wishlist-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .wishlist-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .wishlist-btn.added {
+            color: #dc3545;
+        }
+
+        .wishlist-btn:not(.added) {
+            color: #6c757d;
         }
 
         .cart-badge {
@@ -162,6 +193,11 @@
         [dir="rtl"] .dropdown-menu {
             text-align: right;
         }
+
+        [dir="rtl"] .wishlist-btn {
+            right: auto;
+            left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -185,6 +221,11 @@
                 <a class="nav-link" href="{{ url_for('products') }}">
                     <i class="fas fa-shopping-bag"></i> {{ t('products') }}
                 </a>
+                {% if session.get('user_id') %}
+                <a class="nav-link" href="{{ url_for('wishlist') }}">
+                    <i class="fas fa-heart"></i> {{ t('my_wishlist') if t('my_wishlist') else 'Wishlist' }}
+                </a>
+                {% endif %}
                 <a class="nav-link position-relative" href="{{ url_for('view_cart') }}">
                     <i class="fas fa-shopping-cart"></i> {{ t('cart') }}
                     <span id="cartCount" class="badge bg-danger cart-badge">0</span>
@@ -246,84 +287,51 @@
                 bsAlert.close();
             });
         }, 5000);
-    
-    // Wishlist functionality
-    function addToWishlist(productId) {
-        fetch('/add_to_wishlist/' + productId)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                } else {
-                    showNotification(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                showNotification('Error adding to wishlist', 'error');
-            });
-    }
-    
-    function showNotification(message, type) {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
-        notification.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 300px;';
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
+
+        // Wishlist functionality
+        function addToWishlist(productId, button) {
+            if (!{{ 'true' if session.get('user_id') else 'false' }}) {
+                window.location.href = "{{ url_for('login') }}";
+                return;
             }
-        }, 3000);
-    }
-    
-    // Add event listeners for wishlist buttons
-    document.addEventListener('DOMContentLoaded', function() {
-        // Regular wishlist buttons
-        document.querySelectorAll('.add-to-wishlist').forEach(button => {
-            button.addEventListener('click', function() {
-                const productId = this.getAttribute('data-product-id');
-                const button = this;
-                
-                // Add loading state
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                button.disabled = true;
-                
-                addToWishlist(productId);
-                
-                // Reset button after a delay
-                setTimeout(() => {
-                    button.innerHTML = '<i class="fas fa-heart"></i>';
-                    button.disabled = false;
-                }, 1000);
-            });
-        });
-        
-        // Product detail page wishlist button
-        document.querySelectorAll('.add-to-wishlist-detail').forEach(button => {
-            button.addEventListener('click', function() {
-                const productId = this.getAttribute('data-product-id');
-                const button = this;
-                
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-                button.disabled = true;
-                
-                addToWishlist(productId);
-                
-                setTimeout(() => {
-                    button.innerHTML = '<i class="fas fa-heart"></i>';
-                    button.disabled = false;
-                }, 1000);
-            });
-        });
-    });\n    </script>
+
+            fetch('/add_to_wishlist/' + productId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        button.classList.add('added');
+                        button.innerHTML = '<i class="fas fa-heart"></i>';
+                        showNotification(data.message, 'success');
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error adding to wishlist', 'error');
+                });
+        }
+
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 300px;';
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+    </script>
     
     {% block scripts %}{% endblock %}
 </body>
