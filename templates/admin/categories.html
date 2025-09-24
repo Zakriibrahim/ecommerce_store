@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Category Management</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Existing Categories</h5>
+            </div>
+            <div class="card-body">
+                {% if categories %}
+                <div class="list-group">
+                    {% for category in categories %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ category }}
+                        <span class="badge bg-primary rounded-pill">
+                            {{ products|selectattr('category', 'equalto', category)|list|length }} products
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No categories yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Add New Category</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Categories are automatically created when you add products. 
+                To add a new category, simply use it when creating or editing a product.</p>
+                
+                <a href="/admin/products/add" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Product with New Category
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

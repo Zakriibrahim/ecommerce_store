@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Add New Product</h2>
+    <a href="/admin/products" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Products
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Price ($)</label>
+                        <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">Select Category</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                            <option value="new">+ Add New Category</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Emoji Icon</label>
+                        <input type="text" class="form-control" id="image" name="image" value="📦" required>
+                        <small class="text-muted">Enter an emoji like 💻, 📱, 👕, etc.</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="stock" class="form-label">Stock Quantity</label>
+                        <input type="number" class="form-control" id="stock" name="stock" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Add Product
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('category').addEventListener('change', function() {
+    if (this.value === 'new') {
+        const newCategory = prompt('Enter new category name:');
+        if (newCategory) {
+            // Add new option
+            const option = document.createElement('option');
+            option.value = newCategory;
+            option.textContent = newCategory;
+            this.insertBefore(option, this.lastChild);
+            this.value = newCategory;
+        } else {
+            this.value = '';
+        }
+    }
+});
+</script>
+{% endblock %}

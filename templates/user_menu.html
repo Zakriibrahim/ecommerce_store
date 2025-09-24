@@ -1,0 +1,481 @@
+<!-- User Menu Sidebar -->
+<div id="userMenu" class="user-menu-sidebar">
+    <div class="user-menu-header">
+        <button class="close-menu" onclick="closeUserMenu()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="user-info">
+            {% if session.get('user_id') %}
+            <div class="user-avatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="user-details">
+                <h5>{{ session.get('user_name', 'User') }}</h5>
+                <span class="user-email">{{ session.get('user_email', '') }}</span>
+            </div>
+            {% else %}
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="user-details">
+                <h5>{{ t('guest') }}</h5>
+                <span>{{ t('please_login') }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="user-menu-content">
+        {% if session.get('user_id') %}
+        <div class="menu-section">
+            <h6>{{ t('account') }}</h6>
+            <a href="{{ url_for('profile') }}" class="menu-item">
+                <i class="fas fa-user-circle"></i>
+                <span>{{ t('profile') }}</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="menu-item">
+                <i class="fas fa-shopping-bag"></i>
+                <span>{{ t('my_orders') }}</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="menu-section">
+            <h6>{{ t('preferences') }}</h6>
+            
+            <!-- Language Selector with Dropdown -->
+            <div class="menu-item dropdown-parent">
+                <i class="fas fa-globe"></i>
+                <span>{{ t('language') }}</span>
+                <button class="dropdown-toggle" onclick="toggleDropdown('languageDropdown')">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div id="languageDropdown" class="dropdown-menu">
+                <a href="#" onclick="setLanguage('auto')" class="dropdown-option {% if session.get('language', 'auto') == 'auto' %}active{% endif %}">
+                    <i class="fas fa-desktop"></i> {{ t('auto_mode') }}
+                </a>
+                <a href="#" onclick="setLanguage('en')" class="dropdown-option {% if session.get('language') == 'en' %}active{% endif %}">
+                    <i class="flag-icon">🇺🇸</i> English
+                </a>
+                <a href="#" onclick="setLanguage('fr')" class="dropdown-option {% if session.get('language') == 'fr' %}active{% endif %}">
+                    <i class="flag-icon">🇫🇷</i> Français
+                </a>
+                <a href="#" onclick="setLanguage('ar')" class="dropdown-option {% if session.get('language') == 'ar' %}active{% endif %}">
+                    <i class="flag-icon">🇸🇦</i> العربية
+                </a>
+            </div>
+
+            <!-- Theme Selector with Dropdown -->
+            <div class="menu-item dropdown-parent">
+                <i class="fas fa-palette"></i>
+                <span>{{ t('theme') }}</span>
+                <button class="dropdown-toggle" onclick="toggleDropdown('themeDropdown')">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div id="themeDropdown" class="dropdown-menu">
+                <a href="#" onclick="setTheme('auto')" class="dropdown-option {% if session.get('theme', 'auto') == 'auto' %}active{% endif %}">
+                    <i class="fas fa-desktop"></i> {{ t('auto_mode') }}
+                </a>
+                <a href="#" onclick="setTheme('light')" class="dropdown-option {% if session.get('theme') == 'light' %}active{% endif %}">
+                    <i class="fas fa-sun"></i> {{ t('light_mode') }}
+                </a>
+                <a href="#" onclick="setTheme('dark')" class="dropdown-option {% if session.get('theme') == 'dark' %}active{% endif %}">
+                    <i class="fas fa-moon"></i> {{ t('dark_mode') }}
+                </a>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h6>{{ t('store') }}</h6>
+            <a href="{{ url_for('home') }}" class="menu-item">
+                <i class="fas fa-home"></i>
+                <span>{{ t('home') }}</span>
+            </a>
+            <a href="{{ url_for('products') }}" class="menu-item">
+                <i class="fas fa-shopping-bag"></i>
+                <span>{{ t('products') }}</span>
+            </a>
+        </div>
+
+        <div class="menu-section">
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('logout') }}" class="menu-item logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>{{ t('logout') }}</span>
+            </a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="menu-item">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>{{ t('login') }}</span>
+            </a>
+            <a href="{{ url_for('register') }}" class="menu-item">
+                <i class="fas fa-user-plus"></i>
+                <span>{{ t('register') }}</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Overlay for closing menu -->
+<div id="menuOverlay" class="menu-overlay" onclick="closeUserMenu()"></div>
+
+<style>
+/* User Menu Styles */
+.user-menu-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 350px;
+    height: 100vh;
+    background: var(--bg-color);
+    border-left: 1px solid var(--border-color);
+    z-index: 10000;
+    transition: right 0.3s ease-in-out;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    overflow-y: auto;
+}
+
+.user-menu-sidebar.open {
+    right: 0;
+}
+
+.user-menu-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 20px;
+    position: relative;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.close-menu {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+.close-menu:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.user-avatar {
+    font-size: 3rem;
+}
+
+.user-details h5 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.user-email {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.user-menu-content {
+    padding: 20px;
+}
+
+.menu-section {
+    margin-bottom: 25px;
+}
+
+.menu-section h6 {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 600;
+    padding-left: 10px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-bottom: 5px;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.menu-item:hover {
+    background: var(--hover-color);
+    color: var(--primary-color);
+}
+
+.menu-item i {
+    width: 20px;
+    text-align: center;
+}
+
+/* Dropdown Styles */
+.dropdown-parent {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.dropdown-toggle:hover {
+    color: var(--primary-color);
+    background: var(--hover-color);
+}
+
+.dropdown-menu {
+    display: none;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin: 5px 0 15px 0;
+    padding: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    margin-bottom: 2px;
+}
+
+.dropdown-option:hover {
+    background: var(--hover-color);
+    color: var(--primary-color);
+}
+
+.dropdown-option.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.dropdown-option .flag-icon {
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+}
+
+.logout-btn {
+    color: var(--danger-color) !important;
+}
+
+.logout-btn:hover {
+    background: var(--danger-color) !important;
+    color: white !important;
+}
+
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: none;
+}
+
+.menu-overlay.show {
+    display: block;
+}
+
+/* Fix dark mode link colors */
+[data-theme="dark"] a {
+    color: var(--primary-color);
+}
+
+[data-theme="dark"] a:hover {
+    color: var(--primary-color);
+    opacity: 0.8;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #adb5bd !important;
+}
+
+/* RTL support for Arabic */
+[dir="rtl"] .user-menu-sidebar {
+    right: auto;
+    left: -400px;
+    border-left: none;
+    border-right: 1px solid var(--border-color);
+}
+
+[dir="rtl"] .user-menu-sidebar.open {
+    right: auto;
+    left: 0;
+}
+
+[dir="rtl"] .close-menu {
+    left: auto;
+    right: 15px;
+}
+
+[dir="rtl"] .menu-section h6 {
+    padding-left: 0;
+    padding-right: 10px;
+}
+
+[dir="rtl"] .menu-item {
+    text-align: right;
+}
+
+[dir="rtl"] .dropdown-parent {
+    flex-direction: row-reverse;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .user-menu-sidebar {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
+/* Ensure good contrast in dark mode */
+[data-theme="dark"] {
+    --primary-color: #4dabf7;
+    --danger-color: #ff6b6b;
+    --text-color: #e9ecef;
+    --text-muted: #adb5bd;
+    --border-color: #495057;
+    --hover-color: #2d2d2d;
+    --card-bg: #2d2d2d;
+}
+
+[data-theme="dark"] .dropdown-menu {
+    background: #343a40;
+    border-color: #495057;
+}
+</style>
+
+<script>
+let openDropdown = null;
+
+function openUserMenu() {
+    document.getElementById('userMenu').classList.add('open');
+    document.getElementById('menuOverlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeUserMenu() {
+    document.getElementById('userMenu').classList.remove('open');
+    document.getElementById('menuOverlay').classList.remove('show');
+    document.body.style.overflow = 'auto';
+    closeAllDropdowns();
+}
+
+function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    
+    if (openDropdown && openDropdown !== dropdown) {
+        openDropdown.classList.remove('show');
+    }
+    
+    dropdown.classList.toggle('show');
+    openDropdown = dropdown.classList.contains('show') ? dropdown : null;
+}
+
+function closeAllDropdowns() {
+    const dropdowns = document.querySelectorAll('.dropdown-menu');
+    dropdowns.forEach(dropdown => {
+        dropdown.classList.remove('show');
+    });
+    openDropdown = null;
+}
+
+function setLanguage(lang) {
+    fetch('/set_language/' + lang)
+        .then(() => {
+            location.reload();
+        });
+}
+
+function setTheme(theme) {
+    fetch('/set_theme/' + theme)
+        .then(() => {
+            applyTheme(theme);
+            closeAllDropdowns();
+        });
+}
+
+function applyTheme(theme) {
+    const html = document.documentElement;
+    
+    if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        html.setAttribute('data-theme', 'dark');
+    } else {
+        html.setAttribute('data-theme', 'light');
+    }
+}
+
+// Apply theme on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedTheme = '{{ session.get("theme", "auto") }}';
+    applyTheme(savedTheme);
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if ('{{ session.get("theme", "auto") }}' === 'auto') {
+            applyTheme('auto');
+        }
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.dropdown-parent') && !e.target.closest('.dropdown-menu')) {
+            closeAllDropdowns();
+        }
+    });
+});
+
+// Close menu on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeUserMenu();
+    }
+});
+</script>

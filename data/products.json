@@ -1,0 +1,54 @@
+[
+  {
+    "id": 3,
+    "name": "Mechanical Keyboard",
+    "price": 89.99,
+    "category": "Electronics",
+    "image": "\u2328\ufe0f",
+    "description": "Mechanical keyboard with blue switches",
+    "stock": 20
+  },
+  {
+    "id": 4,
+    "name": "Smartphone",
+    "price": 799.99,
+    "category": "Electronics",
+    "image": "\ud83d\udcf1",
+    "description": "Latest smartphone with 5G capability",
+    "stock": 20
+  },
+  {
+    "id": 5,
+    "name": "Coffee Mug",
+    "price": 14.99,
+    "category": "Home",
+    "image": "\u2615",
+    "description": "Ceramic coffee mug with funny design",
+    "stock": 100,
+    "reviews": [
+      {
+        "user_id": 1,
+        "user_name": "brahim",
+        "rating": 3,
+        "comment": "not good\n",
+        "date": "2025-09-23T23:19:57.621092"
+      },
+      {
+        "user_id": 9999,
+        "user_name": "Administrator",
+        "rating": 5,
+        "comment": "excellent ",
+        "date": "2025-09-24T14:28:49.653962"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "T-Shirt",
+    "price": 24.99,
+    "category": "Clothing",
+    "image": "\ud83d\udc55",
+    "description": "100% cotton t-shirt, various sizes available",
+    "stock": 74
+  }
+]

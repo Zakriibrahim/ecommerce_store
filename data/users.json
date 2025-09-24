@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "brahim",
+    "email": "brahim.zakri.003@gmail.com",
+    "phone": "0659621520",
+    "password": "reg",
+    "created_at": "2025-09-23T23:18:16.310999"
+  },
+  {
+    "id": 9999,
+    "name": "Administrator",
+    "email": "brahim.zakri.003@gmail.com",
+    "password": "Brahimzakri003@",
+    "is_admin": true,
+    "created_at": "2025-09-24T01:32:55.002029"
+  },
+  {
+    "id": 10000,
+    "name": "zakriibrahim240",
+    "email": "zakriibrahim240@gmail.com",
+    "phone": "",
+    "password": "Zakriibrahim240@",
+    "created_at": "2025-09-24T02:10:52.389246"
+  }
+]

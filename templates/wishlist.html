@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-heart text-danger me-2"></i> {{ t('my_wishlist') if t('my_wishlist') else 'My Wishlist' }}</h2>
+    <div>
+        <span class="text-muted">{{ wishlist_items|length }} {{ t('items') if t('items') else 'items' }}</span>
+        <a href="{{ url_for('products') }}" class="btn btn-outline-primary ms-3">
+            <i class="fas fa-plus"></i> {{ t('add_more_items') if t('add_more_items') else 'Add More Items' }}
+        </a>
+    </div>
+</div>
+
+{% if wishlist_items %}
+<div class="row">
+    {% for item in wishlist_items %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card product-card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="text-center mb-3">
+                    <div style="font-size: 3rem;">{{ item.product.image }}</div>
+                </div>
+                
+                <h5 class="card-title">{{ item.product.name }}</h5>
+                <span class="badge bg-secondary mb-2">{{ item.product.category }}</span>
+                
+                <p class="text-muted flex-grow-1">{{ item.product.description[:100] }}...</p>
+                
+                <div class="mt-auto">
+                    <p class="h4 text-primary mb-3">{{ "%.2f"|format(item.product.price) }} MAD</p>
+                    
+                    <div class="d-flex gap-2 mb-2">
+                        {% if item.product.stock > 0 %}
+                        <a href="{{ url_for('move_to_cart', product_id=item.product.id) }}" class="btn btn-primary flex-fill">
+                            <i class="fas fa-cart-plus"></i> {{ t('add_to_cart') }}
+                        </a>
+                        {% else %}
+                        <button class="btn btn-secondary flex-fill" disabled>
+                            <i class="fas fa-times"></i> {{ t('out_of_stock') if t('out_of_stock') else 'Out of Stock' }}
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('remove_from_wishlist', product_id=item.product.id) }}" 
+                           class="btn btn-outline-danger" 
+                           title="{{ t('remove_from_wishlist') if t('remove_from_wishlist') else 'Remove from Wishlist' }}">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                    
+                    <a href="{{ url_for('product_detail', product_id=item.product.id) }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-eye"></i> {{ t('view_details') }}
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <small class="text-muted">
+                    <i class="fas fa-calendar-plus"></i> 
+                    {{ t('added_on') if t('added_on') else 'Added on' }} {{ item.added_date[:10] }}
+                </small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="text-center mt-4">
+    <div class="btn-group">
+        <a href="{{ url_for('products') }}" class="btn btn-outline-primary">
+            <i class="fas fa-shopping-bag"></i> {{ t('continue_shopping') }}
+        </a>
+        <a href="{{ url_for('view_cart') }}" class="btn btn-primary">
+            <i class="fas fa-shopping-cart"></i> {{ t('view_cart') if t('view_cart') else 'View Cart' }}
+        </a>
+    </div>
+</div>
+
+{% else %}
+<div class="text-center py-5">
+    <div class="empty-wishlist-icon mb-4">
+        <i class="fas fa-heart fa-4x text-muted"></i>
+    </div>
+    <h3 class="text-muted">{{ t('wishlist_empty') if t('wishlist_empty') else 'Your wishlist is empty' }}</h3>
+    <p class="text-muted mb-4">{{ t('wishlist_empty_message') if t('wishlist_empty_message') else 'Start adding products you love to your wishlist!' }}</p>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>{{ t('how_to_add') if t('how_to_add') else 'How to add items:' }}</h5>
+                    <ol class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-search me-2"></i> {{ t('browse_products') if t('browse_products') else 'Browse products' }}</li>
+                        <li class="mb-2"><i class="fas fa-heart me-2"></i> {{ t('click_heart_icon') if t('click_heart_icon') else 'Click the heart icon on any product' }}</li>
+                        <li><i class="fas fa-star me-2"></i> {{ t('items_saved_here') if t('items_saved_here') else 'Items will be saved here' }}</li>
+                    </ol>
+                    
+                    <a href="{{ url_for('products') }}" class="btn btn-primary btn-lg mt-3">
+                        <i class="fas fa-shopping-bag"></i> {{ t('start_shopping') }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.empty-wishlist-icon {
+    opacity: 0.5;
+}
+
+.product-card {
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+}
+
+.btn-group .btn {
+    border-radius: 8px;
+}
+
+.card-footer {
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+}
+</style>
+{% endblock %}

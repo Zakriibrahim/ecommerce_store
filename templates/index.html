@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-section text-center py-5 rounded mb-5">
+    <h1 class="display-4">Welcome to TechShop! 🛍️</h1>
+    <p class="lead">Your one-stop destination for the latest tech gadgets</p>
+    <a href="{{ url_for('products') }}" class="btn btn-light btn-lg">Shop Now</a>
+</div>
+
+<h2 class="mb-4">Featured Products</h2>
+<div class="row">
+    {% for product in featured_products %}
+    <div class="col-md-3 mb-4">
+        <div class="card product-card h-100">
+            <div class="card-body text-center d-flex flex-column">
+                <div class="product-image">{{ product.image }}</div>
+                <h5 class="card-title">{{ product.name }}</h5>
+                <p class="text-muted flex-grow-1">{{ product.description[:100] }}...</p>
+                <p class="h5 text-primary mb-3">${{ "%.2f"|format(product.price) }}</p>
+                <div class="mt-auto">
+                    <button class="btn btn-primary add-to-cart w-100 mb-2" data-product-id="{{ product.id }}">
+                        <i class="fas fa-cart-plus"></i> Add to Cart
+                    </button>
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-outline-secondary w-100">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4 text-center">
+        <div class="p-4">
+            <i class="fas fa-shipping-fast fa-3x text-primary mb-3"></i>
+            <h4>Free Shipping</h4>
+            <p class="text-muted">On orders over $50</p>
+        </div>
+    </div>
+    <div class="col-md-4 text-center">
+        <div class="p-4">
+            <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
+            <h4>Secure Payment</h4>
+            <p class="text-muted">100% secure payment processing</p>
+        </div>
+    </div>
+    <div class="col-md-4 text-center">
+        <div class="p-4">
+            <i class="fas fa-headset fa-3x text-primary mb-3"></i>
+            <h4>24/7 Support</h4>
+            <p class="text-muted">We're here to help you</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const button = this;
+            
+            // Show loading state
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+            button.disabled = true;
+            
+            fetch('/add_to_cart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({product_id: productId, quantity: 1})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = `
+                        <i class="fas fa-check-circle"></i> ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.container').prepend(alert);
+                    
+                    updateCartCount();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error adding product to cart');
+            })
+            .finally(() => {
+                // Reset button state
+                button.innerHTML = '<i class="fas fa-cart-plus"></i> Add to Cart';
+                button.disabled = false;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

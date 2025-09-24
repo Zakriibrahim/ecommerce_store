@@ -1,0 +1,5 @@
+{
+  "admin_email": "brahim.zakri.003@gmail.com",
+  "admin_password": "Brahimzakri003@",
+  "secret_key": "your-secret-key-change-this-in-production"
+}

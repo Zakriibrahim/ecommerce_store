@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">{{ t('cart') }}</h2>
+
+{% if cart_items %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                {% for item in cart_items %}
+                <div class="row align-items-center mb-4 pb-4 border-bottom">
+                    <div class="col-md-2 text-center">
+                        <div style="font-size: 3rem;">{{ item.product.image }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>{{ item.product.name }}</h5>
+                        <p class="text-muted">{{ item.product.category }}</p>
+                    </div>
+                    <div class="col-md-2">
+                        <p class="h5">{{ "%.2f"|format(item.product.price) }} MAD</p>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control quantity-input" 
+                               value="{{ item.quantity }}" min="1" max="{{ item.product.stock + item.quantity }}"
+                               data-product-id="{{ item.product.id }}">
+                    </div>
+                    <div class="col-md-2">
+                        <p class="h5">{{ "%.2f"|format(item.total) }} MAD</p>
+                        <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" 
+                           class="btn btn-outline-danger btn-sm" onclick="return confirm('Remove this item?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ t('order_summary') }}</h5>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{{ t('subtotal') if t('subtotal') else 'Subtotal' }}:</span>
+                    <span>{{ "%.2f"|format(total) }} MAD</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{{ t('shipping') if t('shipping') else 'Shipping' }}:</span>
+                    <span>{{ "Free" if shipping == 0 else "%.2f"|format(shipping) }} MAD</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-3">
+                    <strong>{{ t('total') }}:</strong>
+                    <strong>{{ "%.2f"|format(total_with_shipping) }} MAD</strong>
+                </div>
+                
+                {% if shipping > 0 %}
+                <div class="alert alert-info">
+                    <small><i class="fas fa-info-circle"></i> {{ t('free_shipping_note') if t('free_shipping_note') else 'Free shipping on orders over 500 MAD' }}</small>
+                </div>
+                {% endif %}
+                
+                <a href="{{ url_for('checkout') }}" class="btn btn-primary w-100 btn-lg">
+                    <i class="fas fa-lock"></i> {{ t('proceed_to_checkout') if t('proceed_to_checkout') else 'Proceed to Checkout' }}
+                </a>
+                <a href="{{ url_for('products') }}" class="btn btn-outline-secondary w-100 mt-2">
+                    {{ t('continue_shopping') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+    <h3>{{ t('your_cart_is_empty') if t('your_cart_is_empty') else 'Your cart is empty' }}</h3>
+    <p class="text-muted">{{ t('start_shopping_to_add_items') if t('start_shopping_to_add_items') else 'Start shopping to add items to your cart' }}</p>
+    <a href="{{ url_for('products') }}" class="btn btn-primary btn-lg">{{ t('browse_products') if t('browse_products') else 'Browse Products' }}</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const productId = this.getAttribute('data-product-id');
+            const quantity = parseInt(this.value);
+            
+            if (quantity > 0) {
+                fetch('/update_cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: quantity
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload(); // Refresh to update totals
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

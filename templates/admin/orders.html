@@ -1,0 +1,149 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Order Management</h2>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Contact</th>
+                        <th>Location</th>
+                        <th>Items</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders|reverse %}
+                    <tr>
+                        <td><strong>#{{ order.id }}</strong></td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>
+                            {{ order.customer_phone }}<br>
+                            {% if order.customer_email %}<small>{{ order.customer_email }}</small>{% endif %}
+                        </td>
+                        <td>
+                            {{ order.customer_city }}<br>
+                            <small>{{ order.customer_address[:30] }}...</small>
+                        </td>
+                        <td>
+                            {% for item in order.order_items %}
+                            {{ item.product_name }} (x{{ item.quantity }})<br>
+                            {% endfor %}
+                        </td>
+                        <td>${{ "%.2f"|format(order.total) }}</td>
+                        <td>
+                            <select class="form-select status-select" data-order-id="{{ order.id }}">
+                                <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
+                                <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="Completed" {% if order.status == 'Completed' %}selected{% endif %}>Completed</option>
+                                <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </td>
+                        <td>{{ order.order_date[:10] }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary view-order" data-bs-toggle="modal" data-bs-target="#orderModal" data-order-id="{{ order.id }}">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fas fa-shopping-cart fa-3x mb-3"></i><br>
+                            No orders yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Order Details #<span id="modalOrderId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalOrderContent">
+                <!-- Content will be loaded via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.status-select').forEach(select => {
+    select.addEventListener('change', function() {
+        const orderId = this.getAttribute('data-order-id');
+        const status = this.value;
+        
+        fetch('/admin/orders/update_status/' + orderId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({status: status})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = `
+                    <i class="fas fa-check-circle"></i> Order status updated to ${status}!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.admin-content').prepend(alert);
+            }
+        });
+    });
+});
+
+document.querySelectorAll('.view-order').forEach(button => {
+    button.addEventListener('click', function() {
+        const orderId = this.getAttribute('data-order-id');
+        const orderRow = this.closest('tr');
+        
+        const orderDetails = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Customer Information</h6>
+                    <p><strong>Name:</strong> ${orderRow.cells[1].textContent}</p>
+                    <p><strong>Phone:</strong> ${orderRow.cells[2].textContent.split('\\n')[0]}</p>
+                    <p><strong>City:</strong> ${orderRow.cells[3].textContent.split('\\n')[0]}</p>
+                    <p><strong>Address:</strong> ${orderRow.cells[3].textContent.split('\\n')[1]}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Order Information</h6>
+                    <p><strong>Total:</strong> ${orderRow.cells[5].textContent}</p>
+                    <p><strong>Status:</strong> ${orderRow.cells[6].querySelector('select').value}</p>
+                    <p><strong>Date:</strong> ${orderRow.cells[7].textContent}</p>
+                    <p><strong>Payment:</strong> Cash on Delivery</p>
+                </div>
+            </div>
+            <hr>
+            <h6>Order Items</h6>
+            <p>${orderRow.cells[4].innerHTML.replace(/<br>/g, ', ')}</p>
+        `;
+        
+        document.getElementById('modalOrderId').textContent = orderId;
+        document.getElementById('modalOrderContent').innerHTML = orderDetails;
+    });
+});
+</script>
+{% endblock %}
