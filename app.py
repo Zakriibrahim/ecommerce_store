@@ -393,7 +393,7 @@ def profile():
     orders = load_json(ORDERS_DB)
     user_orders = [o for o in orders if o.get('customer_email') == user['email'] or o.get('customer_phone') == user.get('phone', '')]
     
-    return render_template('profile.html', user=user, orders=user_orders, t=t)
+    return render_template('profile.html', user=user, orders=user_orders, t=t, wishlist_count=wishlist_count)
 
 @app.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
@@ -471,7 +471,26 @@ def add_review(product_id):
     product = next((p for p in products if p['id'] == product_id), None)
     
     if not product:
-        return jsonify({'success': False, 'message': t('product_not_found')})
+        return jsonify({'success': False, 'message': t('product_not_found')}
+
+@app.route('/my_orders')
+@login_required
+def my_orders():
+    """User orders page"""
+    users = load_json(USERS_DB)
+    user = next((u for u in users if u['id'] == session['user_id']), None)
+    orders = load_json(ORDERS_DB)
+    user_orders = [o for o in orders if o.get('customer_email') == user['email'] or o.get('customer_phone') == user.get('phone', '')]
+    
+    # Get wishlist count for the profile page
+    wishlists = load_json(WISHLIST_DB)
+    user_wishlist = next((w for w in wishlists if w['user_id'] == session['user_id']), None)
+    wishlist_count = len(user_wishlist['items']) if user_wishlist else 0
+    
+    return render_template('orders.html', orders=user_orders, t=t)
+
+# Update the profile route to include wishlist count
+)
     
     if 'reviews' not in product:
         product['reviews'] = []
