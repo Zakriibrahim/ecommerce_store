@@ -1,112 +1,127 @@
-{% extends "admin/base.html" %}
+{% extends "base.html" %}
+
+{% block title %}{{ _('Admin Dashboard') }} - Party Yacout{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Admin Dashboard</h2>
-    <span class="text-muted">{{ now.strftime('%Y-%m-%d %H:%M') if now else '' }}</span>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card stat-card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>{{ total_products }}</h4>
-                        <p>Total Products</p>
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="section-title">{{ _('Admin Dashboard') }}</h1>
+        <div>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-primary me-2">
+                <i class="fas fa-boxes"></i> {{ _('Manage Products') }}
+            </a>
+            <a href="{{ url_for('admin_add_product') }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> {{ _('Add Product') }}
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                {{ _('Total Products') }}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ products_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-box fa-3x"></i>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card stat-card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>{{ total_orders }}</h4>
-                        <p>Total Orders</p>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                {{ _('Total Orders') }}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ orders_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-bag fa-2x text-gray-300"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-shopping-cart fa-3x"></i>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card stat-card bg-warning text-dark">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>${{ "%.2f"|format(total_revenue) }}</h4>
-                        <p>Total Revenue</p>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                {{ _('Total Users') }}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ users_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-dollar-sign fa-3x"></i>
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5>Recent Orders</h5>
-            </div>
-            <div class="card-body">
-                {% if recent_orders %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in recent_orders|reverse %}
-                            <tr>
-                                <td>#{{ order.id }}</td>
-                                <td>{{ order.customer_name }}</td>
-                                <td>${{ "%.2f"|format(order.total) }}</td>
-                                <td>
-                                    <span class="badge bg-{% if order.status == 'Completed' %}success{% elif order.status == 'Processing' %}warning{% else %}secondary{% endif %}">
-                                        {{ order.status }}
-                                    </span>
-                                </td>
-                                <td>{{ order.order_date[:10] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                {{ _('Revenue') }}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">0 MAD</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
                 </div>
-                {% else %}
-                <p class="text-muted">No orders yet.</p>
-                {% endif %}
             </div>
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5>Quick Actions</h5>
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ _('Recent Orders') }}</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-center text-muted">{{ _('No recent orders') }}</p>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="/admin/products/add" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add New Product
-                    </a>
-                    <a href="/admin/products" class="btn btn-outline-primary">
-                        <i class="fas fa-edit"></i> Manage Products
-                    </a>
-                    <a href="/admin/orders" class="btn btn-outline-success">
-                        <i class="fas fa-eye"></i> View Orders
-                    </a>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ _('Quick Actions') }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <a href="{{ url_for('admin_add_product') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-plus fa-2x mb-2"></i><br>
+                                {{ _('Add Product') }}
+                            </a>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <a href="{{ url_for('admin_products') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-edit fa-2x mb-2"></i><br>
+                                {{ _('Manage Products') }}
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

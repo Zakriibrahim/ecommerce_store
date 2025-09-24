@@ -1,829 +1,457 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-import json
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, TextAreaField, SelectField, FloatField, IntegerField
+from wtforms.validators import DataRequired, Email, Length
+from flask_babel import Babel, gettext as _
 import os
-from datetime import datetime
-from functools import wraps
+from dotenv import load_dotenv
 
-# Import translation system
-import translations
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this-in-production'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///party_yacout.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Database files
-PRODUCTS_DB = "data/products.json"
-USERS_DB = "data/users.json"
-ORDERS_DB = "data/orders.json"
-WISHLIST_DB = "data/wishlist.json"
+# Babel configuration for multilingual support
+app.config['BABEL_DEFAULT_LOCALE'] = 'en'
+app.config['LANGUAGES'] = {
+    'en': 'English',
+    'fr': 'Français',
+    'ar': 'العربية'
+}
 
-def init_database():
-    """Initialize database files with sample data"""
-    os.makedirs("data", exist_ok=True)
-    
-    # Sample products
-    if not os.path.exists(PRODUCTS_DB):
-        products = [
-            {
-                "id": 1, 
-                "name": "Gaming Laptop", 
-                "price": 1299.99, 
-                "category": "Electronics",
-                "image": "💻",
-                "description": "High-performance gaming laptop with RTX 4060",
-                "stock": 15
-            },
-            {
-                "id": 2, 
-                "name": "Wireless Mouse", 
-                "price": 49.99, 
-                "category": "Electronics",
-                "image": "🖱️",
-                "description": "Ergonomic wireless mouse with RGB lighting",
-                "stock": 50
-            },
-            {
-                "id": 3, 
-                "name": "Mechanical Keyboard", 
-                "price": 89.99, 
-                "category": "Electronics",
-                "image": "⌨️",
-                "description": "Mechanical keyboard with blue switches",
-                "stock": 30
-            },
-            {
-                "id": 4, 
-                "name": "Smartphone", 
-                "price": 799.99, 
-                "category": "Electronics",
-                "image": "📱",
-                "description": "Latest smartphone with 5G capability",
-                "stock": 25
-            },
-            {
-                "id": 5, 
-                "name": "Coffee Mug", 
-                "price": 14.99, 
-                "category": "Home",
-                "image": "☕",
-                "description": "Ceramic coffee mug with funny design",
-                "stock": 100
-            },
-            {
-                "id": 6, 
-                "name": "T-Shirt", 
-                "price": 24.99, 
-                "category": "Clothing",
-                "image": "👕",
-                "description": "100% cotton t-shirt, various sizes available",
-                "stock": 75
-            }
-        ]
-        with open(PRODUCTS_DB, 'w') as f:
-            json.dump(products, f, indent=2)
-    
-    # Initialize other databases
-    if not os.path.exists(USERS_DB):
-        with open(USERS_DB, 'w') as f:
-            json.dump([], f)
-    if not os.path.exists(ORDERS_DB):
-        with open(ORDERS_DB, 'w') as f:
-            json.dump([], f)
-    
-    # Initialize wishlist database
-    if not os.path.exists(WISHLIST_DB):
-        with open(WISHLIST_DB, 'w') as f:
-            json.dump([], f)
-    
-    # Create default admin user
-    users = load_json(USERS_DB)
-    admin_user = next((u for u in users if u.get('is_admin')), None)
-    if not admin_user:
-        admin_user = {
-            'id': 9999,
-            'name': 'Administrator',
-            'email': 'admin@techshop.com',
-            'password': 'admin123',
-            'is_admin': True,
-            'created_at': datetime.now().isoformat()
-        }
-        users.append(admin_user)
-        save_json(USERS_DB, users)
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+babel = Babel(app)
 
-def get_translations():
-    """Get translations for current language"""
-    lang = session.get('language', 'auto')
-    if lang == 'auto':
-        # Detect browser language
-        browser_lang = request.accept_languages.best_match(['en', 'fr', 'ar'])
-        lang = browser_lang if browser_lang else 'en'
-    
-    return translations.load_translations(lang)
+@babel.localeselector
+def get_locale():
+    # Check if language is set in session, otherwise use browser preference
+    return session.get('language', request.accept_languages.best_match(app.config['LANGUAGES'].keys()))
 
-def t(key):
-    """Translation helper function"""
-    translations_dict = get_translations()
-    return translations_dict.get(key, key)
+# Database Models
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    first_name = db.Column(db.String(100))
+    last_name = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    address = db.Column(db.Text)
+    is_admin = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return redirect(url_for('login', next=request.url))
-        return f(*args, **kwargs)
-    return decorated_function
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name_en = db.Column(db.String(100), nullable=False)
+    name_fr = db.Column(db.String(100))
+    name_ar = db.Column(db.String(100))
+    products = db.relationship('Product', backref='category', lazy=True)
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'admin_logged_in' not in session:
-            return redirect(url_for('admin_login'))
-        return f(*args, **kwargs)
-    return decorated_function
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name_en = db.Column(db.String(100), nullable=False)
+    name_fr = db.Column(db.String(100))
+    name_ar = db.Column(db.String(100))
+    description_en = db.Column(db.Text)
+    description_fr = db.Column(db.Text)
+    description_ar = db.Column(db.Text)
+    price = db.Column(db.Float, nullable=False)
+    original_price = db.Column(db.Float)
+    discount = db.Column(db.Integer)
+    image = db.Column(db.String(200))
+    stock = db.Column(db.Integer, default=0)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    is_active = db.Column(db.Boolean, default=True)
 
-def load_json(filepath):
-    """Load JSON data from file"""
-    try:
-        with open(filepath, 'r') as f:
-            return json.load(f)
-    except:
-        return []
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    order_number = db.Column(db.String(20), unique=True)
+    total_amount = db.Column(db.Float, nullable=False)
+    shipping_cost = db.Column(db.Float, default=0)
+    status = db.Column(db.String(20), default='pending')
+    shipping_address = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    order_items = db.relationship('OrderItem', backref='order', lazy=True)
 
-def save_json(filepath, data):
-    """Save data to JSON file"""
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2)
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
 
-def get_cart_details():
-    """Get cart items with totals"""
+# Forms
+class LoginForm(FlaskForm):
+    email = StringField(_('Email'), validators=[DataRequired(), Email()])
+    password = PasswordField(_('Password'), validators=[DataRequired()])
+
+class RegisterForm(FlaskForm):
+    username = StringField(_('Username'), validators=[DataRequired(), Length(min=3, max=80)])
+    email = StringField(_('Email'), validators=[DataRequired(), Email()])
+    password = PasswordField(_('Password'), validators=[DataRequired(), Length(min=6)])
+    first_name = StringField(_('First Name'))
+    last_name = StringField(_('Last Name'))
+
+class ProductForm(FlaskForm):
+    name_en = StringField(_('Name (English)'), validators=[DataRequired()])
+    name_fr = StringField(_('Name (French)'))
+    name_ar = StringField(_('Name (Arabic)'))
+    description_en = TextAreaField(_('Description (English)'))
+    description_fr = TextAreaField(_('Description (French)'))
+    description_ar = TextAreaField(_('Description (Arabic)'))
+    price = FloatField(_('Price (MAD)'), validators=[DataRequired()])
+    original_price = FloatField(_('Original Price (MAD)'))
+    discount = IntegerField(_('Discount (%)'))
+    image = StringField(_('Image URL'))
+    stock = IntegerField(_('Stock'), default=0)
+    category_id = SelectField(_('Category'), coerce=int)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Helper functions
+def get_cart_total():
     cart = session.get('cart', {})
-    products = load_json(PRODUCTS_DB)
+    total = 0
+    for product_id, item in cart.items():
+        product = Product.query.get(int(product_id))
+        if product:
+            total += product.price * item['quantity']
+    return total
+
+def get_shipping_cost():
+    total = get_cart_total()
+    return 0 if total >= 500 else 45
+
+def get_product_name(product):
+    locale = get_locale()
+    if locale == 'fr' and product.name_fr:
+        return product.name_fr
+    elif locale == 'ar' and product.name_ar:
+        return product.name_ar
+    return product.name_en
+
+def get_product_description(product):
+    locale = get_locale()
+    if locale == 'fr' and product.description_fr:
+        return product.description_fr
+    elif locale == 'ar' and product.description_ar:
+        return product.description_ar
+    return product.description_en
+
+# Routes
+@app.route('/')
+def index():
+    featured_products = Product.query.filter_by(is_active=True).limit(4).all()
+    return render_template('index.html', featured_products=featured_products)
+
+@app.route('/products')
+def products():
+    category_id = request.args.get('category_id', type=int)
+    search_query = request.args.get('search', '')
     
+    query = Product.query.filter_by(is_active=True)
+    
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+    
+    if search_query:
+        query = query.filter(Product.name_en.ilike(f'%{search_query}%') | 
+                           Product.name_fr.ilike(f'%{search_query}%') |
+                           Product.name_ar.ilike(f'%{search_query}%'))
+    
+    products = query.all()
+    categories = Category.query.all()
+    
+    return render_template('products.html', products=products, categories=categories, 
+                         search_query=search_query, category_id=category_id)
+
+@app.route('/search_suggestions')
+def search_suggestions():
+    query = request.args.get('q', '')
+    if len(query) < 2:
+        return jsonify([])
+    
+    products = Product.query.filter(
+        (Product.name_en.ilike(f'%{query}%')) | 
+        (Product.name_fr.ilike(f'%{query}%')) |
+        (Product.name_ar.ilike(f'%{query}%'))
+    ).limit(5).all()
+    
+    suggestions = []
+    for product in products:
+        suggestions.append({
+            'id': product.id,
+            'name': get_product_name(product),
+            'price': product.price,
+            'image': product.image
+        })
+    
+    return jsonify(suggestions)
+
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    product = Product.query.get_or_404(product_id)
+    return render_template('product_detail.html', product=product)
+
+@app.route('/add_to_cart/<int:product_id>')
+def add_to_cart(product_id):
+    product = Product.query.get_or_404(product_id)
+    cart = session.get('cart', {})
+    
+    product_key = str(product_id)
+    if product_key in cart:
+        cart[product_key]['quantity'] += 1
+    else:
+        cart[product_key] = {
+            'quantity': 1,
+            'name': get_product_name(product),
+            'price': product.price,
+            'image': product.image
+        }
+    
+    session['cart'] = cart
+    flash(_('Product added to cart!'), 'success')
+    return redirect(request.referrer or url_for('index'))
+
+@app.route('/update_cart/<int:product_id>', methods=['POST'])
+def update_cart(product_id):
+    quantity = int(request.form.get('quantity', 1))
+    cart = session.get('cart', {})
+    product_key = str(product_id)
+    
+    if quantity <= 0:
+        cart.pop(product_key, None)
+    else:
+        if product_key in cart:
+            cart[product_key]['quantity'] = quantity
+    
+    session['cart'] = cart
+    return redirect(url_for('view_cart'))
+
+@app.route('/remove_from_cart/<int:product_id>')
+def remove_from_cart(product_id):
+    cart = session.get('cart', {})
+    product_key = str(product_id)
+    cart.pop(product_key, None)
+    session['cart'] = cart
+    flash(_('Product removed from cart'), 'info')
+    return redirect(url_for('view_cart'))
+
+@app.route('/cart')
+def view_cart():
+    cart = session.get('cart', {})
     cart_items = []
     total = 0
     
-    for product_id, quantity in cart.items():
-        product = next((p for p in products if p['id'] == int(product_id)), None)
+    for product_id, item in cart.items():
+        product = Product.query.get(int(product_id))
         if product:
-            item_total = product['price'] * quantity
+            item_total = product.price * item['quantity']
             total += item_total
             cart_items.append({
                 'product': product,
-                'quantity': quantity,
-                'total': item_total
+                'quantity': item['quantity'],
+                'item_total': item_total
             })
     
-    return cart_items, total
+    shipping_cost = 0 if total >= 500 else 45
+    grand_total = total + shipping_cost
+    
+    return render_template('cart.html', cart_items=cart_items, total=total, 
+                         shipping_cost=shipping_cost, grand_total=grand_total)
 
-def calculate_shipping(total):
-    """Calculate shipping fee - 45 MAD if total < 500 MAD, free otherwise"""
-    return 45 if total < 500 else 0
+@app.route('/checkout')
+def checkout():
+    if not session.get('cart'):
+        flash(_('Your cart is empty'), 'warning')
+        return redirect(url_for('view_cart'))
+    
+    cart = session.get('cart', {})
+    total = get_cart_total()
+    shipping_cost = get_shipping_cost()
+    grand_total = total + shipping_cost
+    
+    return render_template('checkout.html', total=total, shipping_cost=shipping_cost, 
+                         grand_total=grand_total)
 
-def calculate_total_with_shipping(total):
-    """Calculate total including shipping"""
-    shipping = calculate_shipping(total)
-    return total + shipping
-
-# ==================== LANGUAGE & THEME ROUTES ====================
-@app.route('/set_language/<lang>')
-def set_language(lang):
-    """Set user's preferred language"""
-    if lang in ['en', 'fr', 'ar', 'auto']:
-        session['language'] = lang
-    return redirect(request.referrer or url_for('home'))
-
-@app.route('/set_theme/<theme>')
-def set_theme(theme):
-    """Set user's preferred theme"""
-    if theme in ['light', 'dark', 'auto']:
-        session['theme'] = theme
-    return redirect(request.referrer or url_for('home'))
-
-# ==================== WISHLIST FUNCTIONALITY ====================
-@app.route('/wishlist')
-@login_required
-def wishlist():
-    """User wishlist page"""
-    wishlists = load_json(WISHLIST_DB)
-    user_wishlist = next((w for w in wishlists if w['user_id'] == session['user_id']), None)
-    
-    if not user_wishlist:
-        user_wishlist = {'user_id': session['user_id'], 'items': []}
-        wishlists.append(user_wishlist)
-        save_json(WISHLIST_DB, wishlists)
-    
-    products = load_json(PRODUCTS_DB)
-    wishlist_items = []
-    
-    for item in user_wishlist['items']:
-        product = next((p for p in products if p['id'] == item['product_id']), None)
-        if product:
-            wishlist_items.append({
-                'product': product,
-                'added_date': item['added_date']
-            })
-    
-    return render_template('wishlist.html', wishlist_items=wishlist_items, t=t)
-
-@app.route('/add_to_wishlist/<int:product_id>')
-@login_required
-def add_to_wishlist(product_id):
-    """Add product to wishlist"""
-    products = load_json(PRODUCTS_DB)
-    product = next((p for p in products if p['id'] == product_id), None)
-    
-    if not product:
-        return jsonify({'success': False, 'message': t('product_not_found')})
-    
-    wishlists = load_json(WISHLIST_DB)
-    user_wishlist = next((w for w in wishlists if w['user_id'] == session['user_id']), None)
-    
-    if not user_wishlist:
-        user_wishlist = {'user_id': session['user_id'], 'items': []}
-        wishlists.append(user_wishlist)
-    
-    # Check if product already in wishlist
-    if any(item['product_id'] == product_id for item in user_wishlist['items']):
-        return jsonify({'success': False, 'message': t('product_already_in_wishlist')})
-    
-    # Add product to wishlist
-    user_wishlist['items'].append({
-        'product_id': product_id,
-        'added_date': datetime.now().isoformat()
-    })
-    
-    save_json(WISHLIST_DB, wishlists)
-    return jsonify({'success': True, 'message': t('added_to_wishlist')})
-
-@app.route('/remove_from_wishlist/<int:product_id>')
-@login_required
-def remove_from_wishlist(product_id):
-    """Remove product from wishlist"""
-    wishlists = load_json(WISHLIST_DB)
-    user_wishlist = next((w for w in wishlists if w['user_id'] == session['user_id']), None)
-    
-    if user_wishlist:
-        user_wishlist['items'] = [item for item in user_wishlist['items'] if item['product_id'] != product_id]
-        save_json(WISHLIST_DB, wishlists)
-    
-    return redirect(url_for('wishlist'))
-
-@app.route('/move_to_cart/<int:product_id>')
-@login_required
-def move_to_cart(product_id):
-    """Move product from wishlist to cart"""
-    # First remove from wishlist
-    wishlists = load_json(WISHLIST_DB)
-    user_wishlist = next((w for w in wishlists if w['user_id'] == session['user_id']), None)
-    
-    if user_wishlist:
-        user_wishlist['items'] = [item for item in user_wishlist['items'] if item['product_id'] != product_id]
-        save_json(WISHLIST_DB, wishlists)
-    
-    # Then add to cart
-    products = load_json(PRODUCTS_DB)
-    product = next((p for p in products if p['id'] == product_id), None)
-    
-    if product and product['stock'] > 0:
-        if 'cart' not in session:
-            session['cart'] = {}
-        
-        cart = session['cart']
-        product_key = str(product_id)
-        
-        if product_key in cart:
-            cart[product_key] += 1
-        else:
-            cart[product_key] = 1
-        
-        session['cart'] = cart
-        session.modified = True
-    
-    return redirect(url_for('wishlist'))
-
-# ==================== ADMIN AUTHENTICATION ====================
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    """Admin login page"""
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        
-        # Check admin credentials
-        if email == 'admin@techshop.com' and password == 'admin123':
-            session['admin_logged_in'] = True
-            session['admin_email'] = email
-            return redirect(url_for('admin_dashboard'))
-        else:
-            return render_template('admin/login.html', error='Invalid admin credentials')
-    
-    return render_template('admin/login.html')
-
-@app.route('/admin/logout')
-def admin_logout():
-    """Admin logout"""
-    session.pop('admin_logged_in', None)
-    session.pop('admin_email', None)
-    return redirect(url_for('admin_login'))
-
-# ==================== USER AUTHENTICATION ====================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """User login"""
-    if request.method == 'POST':
-        email_phone = request.form['email_phone']
-        password = request.form['password']
-        
-        users = load_json(USERS_DB)
-        user = next((u for u in users if (u['email'] == email_phone or u.get('phone') == email_phone) and u['password'] == password), None)
-        
-        if user:
-            session['user_id'] = user['id']
-            session['user_name'] = user['name']
-            return redirect(request.args.get('next') or url_for('home'))
-        else:
-            return render_template('login.html', error=t('invalid_credentials'))
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
     
-    return render_template('login.html', t=t)
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and user.password == form.password.data:  # In real app, use password hashing
+            login_user(user)
+            flash(_('Logged in successfully!'), 'success')
+            return redirect(url_for('index'))
+        else:
+            flash(_('Invalid email or password'), 'error')
+    
+    return render_template('login.html', form=form)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration"""
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        phone = request.form.get('phone', '')
-        password = request.form['password']
-        
-        users = load_json(USERS_DB)
-        
-        # Check if email already exists
-        if any(u['email'] == email for u in users):
-            return render_template('register.html', error=t('email_already_registered'))
-        
-        new_user = {
-            'id': max([u['id'] for u in users]) + 1 if users else 1,
-            'name': name,
-            'email': email,
-            'phone': phone,
-            'password': password,
-            'created_at': datetime.now().isoformat()
-        }
-        
-        users.append(new_user)
-        save_json(USERS_DB, users)
-        
-        session['user_id'] = new_user['id']
-        session['user_name'] = new_user['name']
-        return redirect(url_for('home'))
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
     
-    return render_template('register.html', t=t)
+    form = RegisterForm()
+    if form.validate_on_submit():
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            password=form.password.data,  # In real app, hash this password
+            first_name=form.first_name.data,
+            last_name=form.last_name.data
+        )
+        db.session.add(user)
+        db.session.commit()
+        flash(_('Account created successfully! Please login.'), 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html', form=form)
 
 @app.route('/logout')
+@login_required
 def logout():
-    """User logout"""
-    session.clear()
-    return redirect(url_for('home'))
+    logout_user()
+    flash(_('Logged out successfully'), 'info')
+    return redirect(url_for('index'))
 
 @app.route('/profile')
 @login_required
 def profile():
-    """User profile"""
-    users = load_json(USERS_DB)
-    user = next((u for u in users if u['id'] == session['user_id']), None)
-    orders = load_json(ORDERS_DB)
-    user_orders = [o for o in orders if o.get('customer_email') == user['email'] or o.get('customer_phone') == user.get('phone', '')]
-    
-    # Get wishlist count
-    wishlists = load_json(WISHLIST_DB)
-    user_wishlist = next((w for w in wishlists if w['user_id'] == session['user_id']), None)
-    wishlist_count = len(user_wishlist['items']) if user_wishlist else 0
-    
-    return render_template('profile.html', user=user, orders=user_orders, wishlist_count=wishlist_count, t=t)
+    orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).all()
+    return render_template('profile.html', orders=orders)
 
-@app.route('/my_orders')
-@login_required
-def my_orders():
-    """User orders page"""
-    users = load_json(USERS_DB)
-    user = next((u for u in users if u['id'] == session['user_id']), None)
-    orders = load_json(ORDERS_DB)
-    user_orders = [o for o in orders if o.get('customer_email') == user['email'] or o.get('customer_phone') == user.get('phone', '')]
-    
-    return render_template('orders.html', orders=user_orders, t=t)
+@app.route('/change_language/<language>')
+def change_language(language):
+    if language in app.config['LANGUAGES']:
+        session['language'] = language
+    return redirect(request.referrer or url_for('index'))
 
-@app.route('/profile/edit', methods=['GET', 'POST'])
-@login_required
-def edit_profile():
-    """Edit user profile"""
-    users = load_json(USERS_DB)
-    user = next((u for u in users if u['id'] == session['user_id']), None)
-    
-    if request.method == 'POST':
-        user['name'] = request.form['name']
-        user['email'] = request.form['email']
-        user['phone'] = request.form.get('phone', '')
-        
-        save_json(USERS_DB, users)
-        session['user_name'] = user['name']
-        return redirect(url_for('profile'))
-    
-    return render_template('edit_profile.html', user=user, t=t)
-
-# ==================== SEARCH FUNCTIONALITY ====================
-@app.route('/search')
-def search_products():
-    """Search products by name or description"""
-    query = request.args.get('q', '').lower().strip()
-    
-    if not query:
-        return redirect(url_for('products'))
-    
-    products = load_json(PRODUCTS_DB)
-    search_results = []
-    
-    for product in products:
-        if (query in product['name'].lower() or 
-            query in product['description'].lower() or 
-            query in product['category'].lower()):
-            search_results.append(product)
-    
-    return render_template('search_results.html', 
-                         products=search_results, 
-                         query=query, 
-                         results_count=len(search_results),
-                         t=t)
-
-# ==================== ORDER TRACKING ====================
-@app.route('/track_order', methods=['GET', 'POST'])
-def track_order():
-    """Order tracking page"""
-    if request.method == 'POST':
-        order_id = request.form.get('order_id')
-        phone = request.form.get('phone')
-        
-        orders = load_json(ORDERS_DB)
-        order = None
-        
-        # Try to find order by ID and phone
-        for o in orders:
-            if (str(o['id']) == order_id and 
-                o.get('customer_phone') == phone):
-                order = o
-                break
-        
-        return render_template('track_order.html', order=order, searched=True, t=t)
-    
-    return render_template('track_order.html', order=None, searched=False, t=t)
-
-# ==================== REVIEWS & RATINGS ====================
-@app.route('/product/<int:product_id>/review', methods=['POST'])
-@login_required
-def add_review(product_id):
-    """Add product review"""
-    rating = int(request.json['rating'])
-    comment = request.json.get('comment', '')
-    
-    products = load_json(PRODUCTS_DB)
-    product = next((p for p in products if p['id'] == product_id), None)
-    
-    if not product:
-        return jsonify({'success': False, 'message': t('product_not_found')})
-    
-    if 'reviews' not in product:
-        product['reviews'] = []
-    
-    # Check if user already reviewed
-    existing_review = next((r for r in product['reviews'] if r['user_id'] == session['user_id']), None)
-    if existing_review:
-        existing_review['rating'] = rating
-        existing_review['comment'] = comment
-        existing_review['date'] = datetime.now().isoformat()
-    else:
-        product['reviews'].append({
-            'user_id': session['user_id'],
-            'user_name': session['user_name'],
-            'rating': rating,
-            'comment': comment,
-            'date': datetime.now().isoformat()
-        })
-    
-    save_json(PRODUCTS_DB, products)
-    return jsonify({'success': True, 'message': t('review_added')})
-
-# ==================== ADMIN ROUTES ====================
+# Admin routes
 @app.route('/admin')
-@admin_required
+@login_required
 def admin_dashboard():
-    """Admin dashboard"""
-    products = load_json(PRODUCTS_DB)
-    orders = load_json(ORDERS_DB)
+    if not current_user.is_admin:
+        flash(_('Access denied'), 'error')
+        return redirect(url_for('index'))
     
-    total_products = len(products)
-    total_orders = len(orders)
-    total_revenue = sum(order['total'] for order in orders)
+    products_count = Product.query.count()
+    orders_count = Order.query.count()
+    users_count = User.query.count()
     
-    recent_orders = orders[-5:]  # Last 5 orders
-    
-    return render_template('admin/dashboard.html',
-                         total_products=total_products,
-                         total_orders=total_orders,
-                         total_revenue=total_revenue,
-                         recent_orders=recent_orders)
+    return render_template('admin/dashboard.html', 
+                         products_count=products_count,
+                         orders_count=orders_count,
+                         users_count=users_count)
 
 @app.route('/admin/products')
-@admin_required
+@login_required
 def admin_products():
-    """Admin products management"""
-    products = load_json(PRODUCTS_DB)
-    categories = list(set(p['category'] for p in products))
-    return render_template('admin/products.html', products=products, categories=categories)
+    if not current_user.is_admin:
+        flash(_('Access denied'), 'error')
+        return redirect(url_for('index'))
+    
+    products = Product.query.all()
+    return render_template('admin/products.html', products=products)
 
-@app.route('/admin/products/add', methods=['GET', 'POST'])
-@admin_required
+@app.route('/admin/product/new', methods=['GET', 'POST'])
+@login_required
 def admin_add_product():
-    """Add new product"""
-    if request.method == 'POST':
-        products = load_json(PRODUCTS_DB)
-        
-        new_product = {
-            'id': max([p['id'] for p in products]) + 1 if products else 1,
-            'name': request.form['name'],
-            'price': float(request.form['price']),
-            'category': request.form['category'],
-            'image': request.form['image'],
-            'description': request.form['description'],
-            'stock': int(request.form['stock'])
-        }
-        
-        products.append(new_product)
-        save_json(PRODUCTS_DB, products)
-        return redirect('/admin/products')
+    if not current_user.is_admin:
+        flash(_('Access denied'), 'error')
+        return redirect(url_for('index'))
     
-    products = load_json(PRODUCTS_DB)
-    categories = list(set(p['category'] for p in products))
-    return render_template('admin/add_product.html', categories=categories)
+    form = ProductForm()
+    form.category_id.choices = [(c.id, c.name_en) for c in Category.query.all()]
+    
+    if form.validate_on_submit():
+        product = Product(
+            name_en=form.name_en.data,
+            name_fr=form.name_fr.data,
+            name_ar=form.name_ar.data,
+            description_en=form.description_en.data,
+            description_fr=form.description_fr.data,
+            description_ar=form.description_ar.data,
+            price=form.price.data,
+            original_price=form.original_price.data,
+            discount=form.discount.data,
+            image=form.image.data,
+            stock=form.stock.data,
+            category_id=form.category_id.data
+        )
+        db.session.add(product)
+        db.session.commit()
+        flash(_('Product added successfully!'), 'success')
+        return redirect(url_for('admin_products'))
+    
+    return render_template('admin/product_form.html', form=form)
 
-@app.route('/admin/products/edit/<int:product_id>', methods=['GET', 'POST'])
-@admin_required
-def admin_edit_product(product_id):
-    """Edit product"""
-    products = load_json(PRODUCTS_DB)
-    product = next((p for p in products if p['id'] == product_id), None)
-    
-    if not product:
-        return "Product not found", 404
-    
-    if request.method == 'POST':
-        product['name'] = request.form['name']
-        product['price'] = float(request.form['price'])
-        product['category'] = request.form['category']
-        product['image'] = request.form['image']
-        product['description'] = request.form['description']
-        product['stock'] = int(request.form['stock'])
-        
-        save_json(PRODUCTS_DB, products)
-        return redirect('/admin/products')
-    
-    categories = list(set(p['category'] for p in products))
-    return render_template('admin/edit_product.html', product=product, categories=categories)
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
-@app.route('/admin/products/delete/<int:product_id>')
-@admin_required
-def admin_delete_product(product_id):
-    """Delete product"""
-    products = load_json(PRODUCTS_DB)
-    products = [p for p in products if p['id'] != product_id]
-    save_json(PRODUCTS_DB, products)
-    return redirect('/admin/products')
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
 
-@app.route('/admin/orders')
-@admin_required
-def admin_orders():
-    """Admin orders management"""
-    orders = load_json(ORDERS_DB)
-    return render_template('admin/orders.html', orders=orders)
+# Initialize database and create admin user
+@app.before_first_request
+def create_tables():
+    db.create_all()
+    # Create admin user if not exists
+    if not User.query.filter_by(email='admin@partyyacout.com').first():
+        admin = User(
+            username='admin',
+            email='admin@partyyacout.com',
+            password='admin123',  # Change this in production!
+            first_name='Admin',
+            last_name='User',
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+    
+    # Create default categories if not exist
+    if Category.query.count() == 0:
+        categories = [
+            {'en': 'Birthday Parties', 'fr': 'Fêtes d\'anniversaire', 'ar': 'حفلات أعياد الميلاد'},
+            {'en': 'Wedding Decorations', 'fr': 'Décorations de mariage', 'ar': 'ديكورات الزفاف'},
+            {'en': 'Balloons', 'fr': 'Ballons', 'ar': 'البالونات'},
+            {'en': 'Tableware', 'fr': 'Articles de table', 'ar': 'أدوات المائدة'}
+        ]
+        for cat_data in categories:
+            category = Category(
+                name_en=cat_data['en'],
+                name_fr=cat_data['fr'],
+                name_ar=cat_data['ar']
+            )
+            db.session.add(category)
+        db.session.commit()
 
-@app.route('/admin/orders/update_status/<int:order_id>', methods=['POST'])
-@admin_required
-def admin_update_order_status(order_id):
-    """Update order status"""
-    orders = load_json(ORDERS_DB)
-    order = next((o for o in orders if o['id'] == order_id), None)
-    
-    if order:
-        order['status'] = request.json['status']
-        save_json(ORDERS_DB, orders)
-        return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'message': 'Order not found'})
-
-@app.route('/admin/categories')
-@admin_required
-def admin_categories():
-    """Manage categories"""
-    products = load_json(PRODUCTS_DB)
-    categories = list(set(p['category'] for p in products))
-    return render_template('admin/categories.html', categories=categories)
-
-# ==================== CUSTOMER ROUTES ====================
-@app.route('/')
-def home():
-    """Home page"""
-    products = load_json(PRODUCTS_DB)
-    featured_products = products[:4]
-    return render_template('index.html', featured_products=featured_products, t=t)
-
-@app.route('/products')
-def products():
-    """Products page with filtering"""
-    category = request.args.get('category', '')
-    products = load_json(PRODUCTS_DB)
-    
-    if category:
-        products = [p for p in products if p['category'].lower() == category.lower()]
-    
-    categories = list(set(p['category'] for p in load_json(PRODUCTS_DB)))
-    return render_template('products.html', products=products, categories=categories, selected_category=category, t=t)
-
-@app.route('/product/<int:product_id>')
-def product_detail(product_id):
-    """Product detail page"""
-    products = load_json(PRODUCTS_DB)
-    product = next((p for p in products if p['id'] == product_id), None)
-    if not product:
-        return "Product not found", 404
-    return render_template('product_detail.html', product=product, t=t)
-
-@app.route('/add_to_cart', methods=['POST'])
-def add_to_cart():
-    """Add item to cart"""
-    product_id = int(request.json['product_id'])
-    quantity = int(request.json.get('quantity', 1))
-    
-    products = load_json(PRODUCTS_DB)
-    product = next((p for p in products if p['id'] == product_id), None)
-    
-    if not product:
-        return jsonify({'success': False, 'message': t('product_not_found')})
-    
-    if product['stock'] < quantity:
-        return jsonify({'success': False, 'message': t('not_enough_stock')})
-    
-    # Initialize cart in session
-    if 'cart' not in session:
-        session['cart'] = {}
-    
-    cart = session['cart']
-    product_key = str(product_id)
-    
-    if product_key in cart:
-        cart[product_key] += quantity
-    else:
-        cart[product_key] = quantity
-    
-    session['cart'] = cart
-    session.modified = True
-    
-    return jsonify({'success': True, 'message': t('added_to_cart'), 'cart_count': sum(cart.values())})
-
-@app.route('/cart')
-def view_cart():
-    """View shopping cart"""
-    cart_items, total = get_cart_details()
-    shipping = calculate_shipping(total)
-    total_with_shipping = calculate_total_with_shipping(total)
-    return render_template('cart.html', 
-                         cart_items=cart_items, 
-                         total=total,
-                         shipping=shipping,
-                         total_with_shipping=total_with_shipping,
-                         t=t)
-
-@app.route('/update_cart', methods=['POST'])
-def update_cart():
-    """Update cart quantities"""
-    product_id = str(request.json['product_id'])
-    quantity = int(request.json['quantity'])
-    
-    if quantity <= 0:
-        if 'cart' in session and product_id in session['cart']:
-            del session['cart'][product_id]
-    else:
-        if 'cart' in session and product_id in session['cart']:
-            session['cart'][product_id] = quantity
-    
-    session.modified = True
-    return jsonify({'success': True})
-
-@app.route('/remove_from_cart/<int:product_id>')
-def remove_from_cart(product_id):
-    """Remove item from cart"""
-    if 'cart' in session and str(product_id) in session['cart']:
-        del session['cart'][str(product_id)]
-        session.modified = True
-    
-    return redirect(url_for('view_cart'))
-
-@app.route('/checkout', methods=['GET', 'POST'])
-def checkout():
-    """Checkout process"""
-    cart_items, total = get_cart_details()
-    shipping = calculate_shipping(total)
-    total_with_shipping = calculate_total_with_shipping(total)
-    
-    if request.method == 'POST':
-        # Process order with new fields
-        full_name = request.form['full_name']
-        phone = request.form['phone']
-        city = request.form['city']
-        address = request.form['address']
-        payment_method = "cash_on_delivery"
-        
-        # Get cart items
-        cart = session.get('cart', {})
-        products = load_json(PRODUCTS_DB)
-        
-        order_items = []
-        order_total = 0
-        
-        for product_id, quantity in cart.items():
-            product = next((p for p in products if p['id'] == int(product_id)), None)
-            if product:
-                item_total = product['price'] * quantity
-                order_total += item_total
-                order_items.append({
-                    'product_id': product['id'],
-                    'product_name': product['name'],
-                    'quantity': quantity,
-                    'price': product['price'],
-                    'total': item_total
-                })
-                
-                # Update stock
-                product['stock'] -= quantity
-        
-        # Save updated products
-        save_json(PRODUCTS_DB, products)
-        
-        # Create order
-        orders = load_json(ORDERS_DB)
-        order = {
-            'id': len(orders) + 1,
-            'customer_name': full_name,
-            'customer_phone': phone,
-            'customer_city': city,
-            'customer_address': address,
-            'payment_method': payment_method,
-            'user_id': session.get('user_id'),
-            'items': order_items,
-            'total': order_total,
-            'status': 'Processing',
-            'order_date': datetime.now().isoformat()
-        }
-        orders.append(order)
-        save_json(ORDERS_DB, orders)
-        
-        # Clear cart
-        session['cart'] = {}
-        session.modified = True
-        
-        return redirect(url_for('thank_you', order_id=order['id']))
-    
-    # GET request - show checkout form
-    if not cart_items:
-        return redirect(url_for('home'))
-    
-    return render_template('checkout.html', 
-                         cart_items=cart_items, 
-                         total=total,
-                         shipping=shipping,
-                         total_with_shipping=total_with_shipping,
-                         t=t)
-
-@app.route('/thank_you/<int:order_id>')
-def thank_you(order_id):
-    """Thank you page after successful order"""
-    orders = load_json(ORDERS_DB)
-    order = next((o for o in orders if o['id'] == order_id), None)
-    if not order:
-        return "Order not found", 404
-    return render_template('thank_you.html', order=order, t=t)
-
-@app.route('/order_confirmation/<int:order_id>')
-def order_confirmation(order_id):
-    """Order confirmation page"""
-    orders = load_json(ORDERS_DB)
-    order = next((o for o in orders if o['id'] == order_id), None)
-    if not order:
-        return "Order not found", 404
-    return render_template('order_confirmation.html', order=order, t=t)
-
-@app.route('/api/cart_count')
-def cart_count():
-    """API endpoint to get cart count"""
-    cart = session.get('cart', {})
-    return jsonify({'count': sum(cart.values())})
+# Context processor to make functions available in all templates
+@app.context_processor
+def inject_global_variables():
+    return dict(
+        get_locale=get_locale,
+        get_product_name=get_product_name,
+        get_product_description=get_product_description,
+        get_cart_total=get_cart_total,
+        get_shipping_cost=get_shipping_cost,
+        cart_count=len(session.get('cart', {}))
+    )
 
 if __name__ == '__main__':
-    init_database()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)

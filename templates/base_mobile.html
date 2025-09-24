@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('language', 'en') }}" dir="{{ 'rtl' if session.get('language') == 'ar' else 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}TechShop - {{ t('welcome') if t('welcome') else 'Your Favorite E-Store' }}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            
+            /* Mobile-optimized sizes */
+            --header-height: 60px;
+            --bottom-nav-height: 70px;
+            --touch-target: 44px;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e9ecef;
+            --text-muted: #adb5bd;
+            --border-color: #495057;
+            --hover-color: #2d2d2d;
+            --card-bg: #2d2d2d;
+            --header-bg: #212529;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color, #ffffff);
+            color: var(--text-color, #212529);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+            padding-bottom: var(--bottom-nav-height);
+        }
+
+        /* Mobile Header */
+        .mobile-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: var(--header-bg, #343a40);
+            color: white;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .mobile-header .brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .mobile-header .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mobile-header .btn {
+            width: var(--touch-target);
+            height: var(--touch-target);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 50%;
+            font-size: 1.1rem;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--bottom-nav-height);
+            background: white;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        [data-theme="dark"] .bottom-nav {
+            background: var(--card-bg);
+            border-top-color: var(--border-color);
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #6c757d;
+            font-size: 0.8rem;
+            padding: 8px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+
+        .nav-item i {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-item .badge {
+            position: absolute;
+            top: 8px;
+            right: calc(50% - 20px);
+            background: var(--danger-color);
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: calc(var(--header-height) + 15px) 15px 20px;
+            min-height: 100vh;
+        }
+
+        /* Mobile-optimized cards */
+        .mobile-card {
+            background: var(--card-bg, white);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color, #dee2e6);
+        }
+
+        /* Touch-friendly buttons */
+        .btn-mobile {
+            min-height: var(--touch-target);
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-mobile-sm {
+            min-height: 36px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        /* Product cards for mobile */
+        .product-card-mobile {
+            background: var(--card-bg, white);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color, #dee2e6);
+            position: relative;
+        }
+
+        .product-image-mobile {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .wishlist-btn-mobile {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        [dir="rtl"] .wishlist-btn-mobile {
+            right: auto;
+            left: 10px;
+        }
+
+        /* Search bar */
+        .search-bar-mobile {
+            position: sticky;
+            top: var(--header-height);
+            z-index: 100;
+            background: var(--bg-color);
+            padding: 10px 0;
+            margin: -10px -15px 15px;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        /* Swipeable sections */
+        .swipe-section {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 10px 0;
+            margin: 0 -15px;
+            padding-left: 15px;
+            padding-right: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .swipe-section::-webkit-scrollbar {
+            display: none;
+        }
+
+        .swipe-item {
+            display: inline-block;
+            margin-right: 10px;
+            white-space: normal;
+        }
+
+        .swipe-item:last-child {
+            margin-right: 0;
+        }
+
+        /* Mobile forms */
+        .form-control-mobile {
+            min-height: var(--touch-target);
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+
+        /* Loading states */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .mobile-only {
+                display: none;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .desktop-only {
+                display: none;
+            }
+            
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            
+            .row {
+                margin-left: -5px;
+                margin-right: -5px;
+            }
+            
+            .col-md-4, .col-md-3, .col-md-6, .col-md-8 {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+        /* Safe area insets for notch phones */
+        @supports(padding: max(0px)) {
+            .main-content {
+                padding-left: max(15px, env(safe-area-inset-left));
+                padding-right: max(15px, env(safe-area-inset-right));
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
+            }
+            
+            .bottom-nav {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="brand">
+            <i class="fas fa-store"></i> TechShop
+        </div>
+        <div class="actions">
+            <button class="btn" onclick="openSearch()">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn" onclick="openCart()">
+                <i class="fas fa-shopping-cart"></i>
+                <span id="cartCountMobile" class="badge bg-danger" style="display: none;">0</span>
+            </button>
+            <button class="btn" onclick="openUserMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Search Overlay -->
+    <div id="searchOverlay" class="mobile-card" style="display: none; position: fixed; top: var(--header-height); left: 0; right: 0; z-index: 999;">
+        <form action="/search" method="get" class="d-flex">
+            <input type="text" name="q" class="form-control form-control-mobile" placeholder="Search products..." autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-mobile-sm ms-2">
+                <i class="fas fa-search"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-mobile-sm ms-2" onclick="closeSearch()">
+                <i class="fas fa-times"></i>
+            </button>
+        </form>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info alert-dismissible fade show mobile-card" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %}">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="{{ url_for('products') }}" class="nav-item {% if request.endpoint == 'products' %}active{% endif %}">
+            <i class="fas fa-shopping-bag"></i>
+            <span>Products</span>
+        </a>
+        <a href="{{ url_for('view_cart') }}" class="nav-item {% if request.endpoint == 'view_cart' %}active{% endif %}">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Cart</span>
+            <span id="cartCountNav" class="badge" style="display: none;">0</span>
+        </a>
+        {% if session.get('user_id') %}
+        <a href="{{ url_for('profile') }}" class="nav-item {% if request.endpoint == 'profile' %}active{% endif %}">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="nav-item {% if request.endpoint == 'login' %}active{% endif %}">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Login</span>
+        </a>
+        {% endif %}
+    </nav>
+
+    <!-- Include Mobile User Menu -->
+    {% include 'user_menu_mobile.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mobile-specific functionality
+        function openSearch() {
+            document.getElementById('searchOverlay').style.display = 'block';
+            document.querySelector('#searchOverlay input').focus();
+        }
+
+        function closeSearch() {
+            document.getElementById('searchOverlay').style.display = 'none';
+        }
+
+        function openCart() {
+            window.location.href = "{{ url_for('view_cart') }}";
+        }
+
+        // Update cart counts for mobile
+        function updateMobileCartCount() {
+            fetch('/api/cart_count')
+                .then(response => response.json())
+                .then(data => {
+                    const count = data.count;
+                    const cartBadge = document.getElementById('cartCountMobile');
+                    const navBadge = document.getElementById('cartCountNav');
+                    
+                    if (count > 0) {
+                        cartBadge.textContent = count;
+                        cartBadge.style.display = 'block';
+                        navBadge.textContent = count;
+                        navBadge.style.display = 'block';
+                    } else {
+                        cartBadge.style.display = 'none';
+                        navBadge.style.display = 'none';
+                    }
+                });
+        }
+
+        // Touch event handlers for better mobile UX
+        document.addEventListener('touchstart', function() {}, {passive: true});
+        
+        // Prevent zoom on double-tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Initialize mobile features
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMobileCartCount();
+            
+            // Add touch feedback to buttons
+            document.querySelectorAll('.btn, .nav-item').forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.opacity = '0.7';
+                });
+                
+                button.addEventListener('touchend', function() {
+                    this.style.opacity = '1';
+                });
+            });
+        });
+
+        // Wishlist functionality for mobile
+        function addToWishlistMobile(productId, button) {
+            if (!{{ 'true' if session.get('user_id') else 'false' }}) {
+                window.location.href = "{{ url_for('login') }}";
+                return;
+            }
+
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+
+            fetch('/add_to_wishlist/' + productId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        button.innerHTML = '<i class="fas fa-heart"></i>';
+                        button.style.color = '#dc3545';
+                        showMobileNotification(data.message, 'success');
+                    } else {
+                        button.innerHTML = '<i class="fas fa-heart"></i>';
+                        showMobileNotification(data.message, 'error');
+                    }
+                })
+                .finally(() => {
+                    button.disabled = false;
+                });
+        }
+
+        function showMobileNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} mobile-card`;
+            notification.style.cssText = 'position: fixed; top: 80px; left: 20px; right: 20px; z-index: 10000;';
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

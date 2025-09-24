@@ -1,100 +1,46 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>All Products</h2>
-    <div class="btn-group">
-        <a href="{{ url_for('products') }}" class="btn btn-outline-primary {% if not selected_category %}active{% endif %}">All</a>
-        {% for category in categories %}
-        <a href="{{ url_for('products') }}?category={{ category }}" 
-           class="btn btn-outline-primary {% if selected_category == category %}active{% endif %}">
-            {{ category }}
-        </a>
-        {% endfor %}
-    </div>
-</div>
+{% block title %}Party Supplies - PartyShop{% endblock %}
 
-<div class="row">
-    {% for product in products %}
-    <div class="col-md-4 mb-4">
-        <div class="card product-card h-100">
-            <!-- Wishlist Button -->
-            <button class="wishlist-btn {% if session.get('user_id') %}add-to-wishlist{% endif %}" 
-                    data-product-id="{{ product.id }}"
-                    onclick="addToWishlist({{ product.id }}, this)">
-                <i class="fas fa-heart{% if session.get('user_id') %}{% else %}-broken{% endif %}"></i>
-            </button>
-            
-            <div class="card-body text-center d-flex flex-column">
-                <div class="product-image">{{ product.image }}</div>
-                <h5 class="card-title">{{ product.name }}</h5>
-                <span class="badge bg-secondary mb-2">{{ product.category }}</span>
-                <p class="text-muted flex-grow-1">{{ product.description }}</p>
-                <p class="h5 text-primary mb-3">${{ "%.2f"|format(product.price) }}</p>
-                <p class="text-muted small">In stock: {{ product.stock }}</p>
-                <div class="mt-auto">
-                    <button class="btn btn-primary add-to-cart w-100 mb-2" data-product-id="{{ product.id }}">
-                        <i class="fas fa-cart-plus"></i> Add to Cart
-                    </button>
-                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-outline-secondary w-100">
-                        View Details
-                    </a>
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="section-title">Our Party Supplies</h1>
+            <p class="lead">Everything you need for an amazing celebration! 🎊</p>
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        {% for product in products %}
+        <div class="col-lg-4 col-md-6">
+            <div class="product-card h-100 fade-in">
+                <div class="position-relative">
+                    <img src="{{ product.image }}" class="product-image w-100" alt="{{ product.name }}">
+                    {% if product.discount %}
+                    <span class="badge-discount">-{{ product.discount }}%</span>
+                    {% endif %}
+                </div>
+                <div class="product-card-body d-flex flex-column">
+                    <h5 class="product-title">{{ product.name }}</h5>
+                    <span class="badge bg-warning text-dark mb-2">{{ product.category }}</span>
+                    <p class="text-muted flex-grow-1">{{ product.description }}</p>
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="product-price">${{ "%.2f"|format(product.price) }}</span>
+                            {% if product.original_price %}
+                            <small class="text-muted text-decoration-line-through">${{ "%.2f"|format(product.original_price) }}</small>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('product_detail', product_id=product.id) }}" 
+                           class="btn btn-primary w-100">
+                            <i class="fas fa-gift me-2"></i>View Details
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-    {% else %}
-    <div class="col-12">
-        <div class="text-center py-5">
-            <i class="fas fa-search fa-3x text-muted mb-3"></i>
-            <h4>No products found</h4>
-            <p class="text-muted">Try adjusting your search criteria</p>
-            <a href="{{ url_for('products') }}" class="btn btn-primary">View All Products</a>
-        </div>
-    </div>
-    {% endfor %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.add-to-cart').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.getAttribute('data-product-id');
-            const button = this;
-            
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-            button.disabled = true;
-            
-            fetch('/add_to_cart', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({product_id: productId, quantity: 1})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-success alert-dismissible fade show';
-                    alert.innerHTML = `
-                        <i class="fas fa-check-circle"></i> ${data.message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    document.querySelector('.container').prepend(alert);
-                    updateCartCount();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .finally(() => {
-                button.innerHTML = '<i class="fas fa-cart-plus"></i> Add to Cart';
-                button.disabled = false;
-            });
-        });
-    });
-});
-</script>
 {% endblock %}

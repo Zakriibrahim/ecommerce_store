@@ -1,0 +1,175 @@
+<!-- Mobile User Menu -->
+<div id="mobileUserMenu" class="mobile-card" style="display: none; position: fixed; top: var(--header-height); left: 0; right: 0; bottom: var(--bottom-nav-height); z-index: 1000; overflow-y: auto;">
+    <div class="user-info-mobile text-center mb-4">
+        {% if session.get('user_id') %}
+        <div class="user-avatar-mobile mb-3">
+            <i class="fas fa-user-circle fa-3x text-primary"></i>
+        </div>
+        <h5>{{ session.get('user_name', 'User') }}</h5>
+        <p class="text-muted small">{{ session.get('user_email', '') }}</p>
+        {% else %}
+        <div class="user-avatar-mobile mb-3">
+            <i class="fas fa-user fa-3x text-muted"></i>
+        </div>
+        <h5>Guest</h5>
+        <p class="text-muted small">Please login to access all features</p>
+        {% endif %}
+    </div>
+
+    <div class="menu-items-mobile">
+        {% if session.get('user_id') %}
+        <a href="{{ url_for('profile') }}" class="menu-item-mobile">
+            <i class="fas fa-user-circle"></i>
+            <span>Profile</span>
+            <i class="fas fa-chevron-right text-muted"></i>
+        </a>
+        <a href="{{ url_for('my_orders') }}" class="menu-item-mobile">
+            <i class="fas fa-shopping-bag"></i>
+            <span>My Orders</span>
+            <i class="fas fa-chevron-right text-muted"></i>
+        </a>
+        <a href="{{ url_for('wishlist') }}" class="menu-item-mobile">
+            <i class="fas fa-heart"></i>
+            <span>My Wishlist</span>
+            <i class="fas fa-chevron-right text-muted"></i>
+        </a>
+        {% endif %}
+
+        <div class="menu-section-mobile">
+            <h6>Preferences</h6>
+            <div class="menu-item-mobile" onclick="toggleThemeMobile()">
+                <i class="fas fa-palette"></i>
+                <span>Theme</span>
+                <span class="badge bg-primary" id="themeBadge">Auto</span>
+            </div>
+            <div class="menu-item-mobile" onclick="toggleLanguageMobile()">
+                <i class="fas fa-globe"></i>
+                <span>Language</span>
+                <span class="badge bg-primary" id="languageBadge">EN</span>
+            </div>
+        </div>
+
+        {% if session.get('user_id') %}
+        <a href="{{ url_for('logout') }}" class="menu-item-mobile text-danger">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="menu-item-mobile">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Login</span>
+            <i class="fas fa-chevron-right text-muted"></i>
+        </a>
+        <a href="{{ url_for('register') }}" class="menu-item-mobile">
+            <i class="fas fa-user-plus"></i>
+            <span>Register</span>
+            <i class="fas fa-chevron-right text-muted"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Overlay -->
+<div id="mobileMenuOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999;" onclick="closeMobileUserMenu()"></div>
+
+<style>
+.menu-item-mobile {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    text-decoration: none;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.3s;
+}
+
+.menu-item-mobile:last-child {
+    border-bottom: none;
+}
+
+.menu-item-mobile:hover {
+    background-color: var(--hover-color);
+}
+
+.menu-item-mobile i:first-child {
+    width: 24px;
+    margin-right: 15px;
+    font-size: 1.1rem;
+}
+
+.menu-item-mobile span {
+    flex: 1;
+}
+
+.menu-section-mobile {
+    margin: 20px 0;
+}
+
+.menu-section-mobile h6 {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    padding: 0 15px;
+    margin-bottom: 10px;
+}
+
+.user-info-mobile {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+</style>
+
+<script>
+function openMobileUserMenu() {
+    document.getElementById('mobileUserMenu').style.display = 'block';
+    document.getElementById('mobileMenuOverlay').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMobileUserMenu() {
+    document.getElementById('mobileUserMenu').style.display = 'none';
+    document.getElementById('mobileMenuOverlay').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function toggleThemeMobile() {
+    const currentTheme = '{{ session.get("theme", "auto") }}';
+    const themes = ['auto', 'light', 'dark'];
+    const currentIndex = themes.indexOf(currentTheme);
+    const nextTheme = themes[(currentIndex + 1) % themes.length];
+    
+    setTheme(nextTheme);
+}
+
+function toggleLanguageMobile() {
+    const currentLang = '{{ session.get("language", "auto") }}';
+    const languages = ['auto', 'en', 'fr', 'ar'];
+    const currentIndex = languages.indexOf(currentLang);
+    const nextLang = languages[(currentIndex + 1) % languages.length];
+    
+    setLanguage(nextLang);
+}
+
+function setTheme(theme) {
+    fetch('/set_theme/' + theme)
+        .then(() => {
+            location.reload();
+        });
+}
+
+function setLanguage(lang) {
+    fetch('/set_language/' + lang)
+        .then(() => {
+            location.reload();
+        });
+}
+
+// Update badges on load
+document.addEventListener('DOMContentLoaded', function() {
+    const theme = '{{ session.get("theme", "auto") }}';
+    const lang = '{{ session.get("language", "auto") }}';
+    
+    document.getElementById('themeBadge').textContent = theme === 'auto' ? 'Auto' : theme.charAt(0).toUpperCase();
+    document.getElementById('languageBadge').textContent = lang === 'auto' ? 'Auto' : lang.toUpperCase();
+});
+</script>

@@ -1,0 +1,154 @@
+{% extends "base_mobile.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="mobile-card text-center hero-section-mobile">
+    <h1 class="display-6">TechShop 🛍️</h1>
+    <p class="lead">Your mobile shopping destination</p>
+    <a href="{{ url_for('products') }}" class="btn btn-primary btn-mobile">
+        <i class="fas fa-shopping-bag"></i> Shop Now
+    </a>
+</div>
+
+<!-- Categories Swipe -->
+<div class="mobile-card">
+    <h5 class="mb-3">Categories</h5>
+    <div class="swipe-section">
+        <a href="{{ url_for('products') }}" class="btn btn-outline-primary swipe-item">All</a>
+        {% for category in categories %}
+        <a href="{{ url_for('products') }}?category={{ category }}" class="btn btn-outline-primary swipe-item">
+            {{ category }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Featured Products -->
+<div class="mobile-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Featured Products</h5>
+        <a href="{{ url_for('products') }}" class="btn btn-outline-primary btn-mobile-sm">View All</a>
+    </div>
+    
+    <div class="products-grid-mobile">
+        {% for product in featured_products %}
+        <div class="product-card-mobile">
+            <button class="wishlist-btn-mobile" onclick="addToWishlistMobile({{ product.id }}, this)">
+                <i class="fas fa-heart"></i>
+            </button>
+            
+            <div class="product-image-mobile">{{ product.image }}</div>
+            <h6 class="product-title">{{ product.name }}</h6>
+            <p class="text-muted small mb-2">{{ product.description[:60] }}...</p>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="h6 text-primary mb-0">${{ "%.2f"|format(product.price) }}</span>
+                <button class="btn btn-primary btn-mobile-sm" onclick="addToCartMobile({{ product.id }})">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="mobile-card">
+    <h5 class="mb-3">Quick Actions</h5>
+    <div class="row g-2">
+        <div class="col-6">
+            <a href="{{ url_for('track_order') }}" class="btn btn-outline-secondary btn-mobile w-100">
+                <i class="fas fa-truck"></i> Track Order
+            </a>
+        </div>
+        <div class="col-6">
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('wishlist') }}" class="btn btn-outline-secondary btn-mobile w-100">
+                <i class="fas fa-heart"></i> Wishlist
+            </a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-mobile w-100">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.hero-section-mobile {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin: -15px;
+    margin-bottom: 15px;
+}
+
+.products-grid-mobile {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .products-grid-mobile {
+        grid-template-columns: 1fr;
+    }
+}
+
+.product-title {
+    font-size: 0.9rem;
+    line-height: 1.2;
+    height: 2.4em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+</style>
+
+<script>
+function addToCartMobile(productId) {
+    const button = event.target;
+    const originalHTML = button.innerHTML;
+    
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    fetch('/add_to_cart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({product_id: productId, quantity: 1})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMobileNotification(data.message, 'success');
+            updateMobileCartCount();
+        } else {
+            showMobileNotification(data.message, 'error');
+        }
+    })
+    .finally(() => {
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    });
+}
+
+// Swipe functionality for categories
+let startX = 0;
+let currentX = 0;
+const swipeSection = document.querySelector('.swipe-section');
+
+if (swipeSection) {
+    swipeSection.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+    });
+    
+    swipeSection.addEventListener('touchmove', (e) => {
+        currentX = e.touches[0].clientX;
+    });
+}
+</script>
+{% endblock %}

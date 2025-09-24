@@ -1,35 +1,69 @@
 {% extends "base.html" %}
 
+{% block title %}{{ _('Login') }} - Party Yacout{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h2 class="text-center mb-4">Login</h2>
-                
-                {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-                {% endif %}
-                
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="email_phone" class="form-label">Email or Phone</label>
-                        <input type="text" class="form-control" id="email_phone" name="email_phone" required>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card">
+                <div class="card-body p-5">
+                    <h2 class="card-title text-center mb-4">{{ _('Login to Your Account') }}</h2>
+                    
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">{{ _('Email Address') }}</label>
+                            {{ form.email(class="form-control", placeholder=_("Enter your email")) }}
+                            {% if form.email.errors %}
+                            <div class="text-danger">
+                                {% for error in form.email.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">{{ _('Password') }}</label>
+                            {{ form.password(class="form-control", placeholder=_("Enter your password")) }}
+                            {% if form.password.errors %}
+                            <div class="text-danger">
+                                {% for error in form.password.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">{{ _('Remember me') }}</label>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">{{ _('Login') }}</button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p>{{ _("Don't have an account?") }} 
+                           <a href="{{ url_for('register') }}">{{ _('Create one here') }}</a>
+                        </p>
+                        <p>
+                            <a href="#">{{ _('Forgot your password?') }}</a>
+                        </p>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
+                    <hr class="my-4">
                     
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Login</button>
+                    <div class="text-center">
+                        <p class="text-muted">{{ _('Or continue as guest') }}</p>
+                        <a href="{{ url_for('products') }}" class="btn btn-outline-secondary">
+                            {{ _('Continue Shopping') }}
+                        </a>
                     </div>
-                </form>
-                
-                <div class="text-center mt-3">
-                    <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
-                    <p><small>Or continue as guest - account is optional!</small></p>
                 </div>
             </div>
         </div>

@@ -1,125 +1,144 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-user-circle fa-5x text-primary"></i>
-                </div>
-                <h4>{{ user.name }}</h4>
-                <p class="text-muted">{{ user.email }}</p>
-                {% if user.phone %}
-                <p class="text-muted">{{ user.phone }}</p>
-                {% endif %}
-                <p class="small text-muted">Member since {{ user.created_at[:10] }}</p>
-                
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('edit_profile') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-edit"></i> Edit Profile
-                    </a>
-                    <a href="{{ url_for('my_orders') }}" class="btn btn-outline-success">
-                        <i class="fas fa-shopping-bag"></i> View My Orders
-                    </a>
-                    <a href="{{ url_for('wishlist') }}" class="btn btn-outline-info">
-                        <i class="fas fa-heart"></i> My Wishlist
-                    </a>
-                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Profile Information</h5>
-                <a href="{{ url_for('edit_profile') }}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-edit"></i> Edit
-                </a>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Personal Details</h6>
-                        <p><strong>Name:</strong> {{ user.name }}</p>
-                        <p><strong>Email:</strong> {{ user.email }}</p>
-                        {% if user.phone %}
-                        <p><strong>Phone:</strong> {{ user.phone }}</p>
-                        {% else %}
-                        <p><strong>Phone:</strong> <span class="text-muted">Not provided</span></p>
-                        {% endif %}
-                        <p><strong>Member since:</strong> {{ user.created_at[:10] }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Account Summary</h6>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Total Orders:</span>
-                            <span class="badge bg-primary">{{ orders|length }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Wishlist Items:</span>
-                            <span class="badge bg-info">{{ wishlist_count }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+{% block title %}{{ _('My Profile') }} - Party Yacout{% endblock %}
 
-        <div class="card mt-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Recent Orders</h5>
-                <a href="{{ url_for('my_orders') }}" class="btn btn-sm btn-outline-primary">View All</a>
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-user-circle fa-5x text-primary"></i>
+                    </div>
+                    <h4>{{ current_user.first_name }} {{ current_user.last_name }}</h4>
+                    <p class="text-muted">@{{ current_user.username }}</p>
+                    <p class="text-muted">{{ current_user.email }}</p>
+                    
+                    <div class="list-group list-group-flush">
+                        <a href="#orders" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>{{ _('Order History') }}
+                        </a>
+                        <a href="#settings" class="list-group-item list-group-item-action">
+                            <i class="fas fa-cog me-2"></i>{{ _('Account Settings') }}
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action text-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i>{{ _('Logout') }}
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
+        </div>
+        
+        <div class="col-lg-8">
+            <!-- Order History -->
+            <div id="orders">
+                <h3 class="section-title">{{ _('Order History') }}</h3>
+                
                 {% if orders %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Date</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in orders[:3] %}
-                            <tr>
-                                <td>#{{ order.id }}</td>
-                                <td>{{ order.order_date[:10] }}</td>
-                                <td>${{ "%.2f"|format(order.total) }}</td>
-                                <td>
-                                    <span class="badge bg-{% if order.status == 'Completed' %}success{% elif order.status == 'Processing' %}warning{% else %}secondary{% endif %}">
-                                        {{ order.status }}
+                <div class="accordion" id="ordersAccordion">
+                    {% for order in orders %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#order{{ order.id }}">
+                                <div class="d-flex justify-content-between w-100 me-3">
+                                    <span>
+                                        {{ _('Order') }} #{{ order.order_number }}
+                                        <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' }} ms-2">
+                                            {{ order.status }}
+                                        </span>
                                     </span>
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('order_confirmation', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
-                                        View
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    <span>{{ order.created_at.strftime('%Y-%m-%d') }}</span>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="order{{ order.id }}" class="accordion-collapse collapse" data-bs-parent="#ordersAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>{{ _('Order Details') }}</h6>
+                                        <p><strong>{{ _('Total:') }}</strong> {{ order.total_amount }} MAD</p>
+                                        <p><strong>{{ _('Shipping:') }}</strong> {{ order.shipping_cost }} MAD</p>
+                                        <p><strong>{{ _('Grand Total:') }}</strong> {{ order.total_amount + order.shipping_cost }} MAD</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>{{ _('Shipping Address') }}</h6>
+                                        <p>{{ order.shipping_address or _('No address provided') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% if orders|length > 3 %}
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('my_orders') }}" class="btn btn-outline-primary">View All {{ orders|length }} Orders</a>
-                </div>
-                {% endif %}
                 {% else %}
-                <div class="text-center py-3">
-                    <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
-                    <p class="text-muted">No orders yet.</p>
-                    <a href="{{ url_for('products') }}" class="btn btn-primary">Start Shopping</a>
+                <div class="text-center py-4">
+                    <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                    <h5>{{ _('No orders yet') }}</h5>
+                    <p class="text-muted">{{ _('Your order history will appear here.') }}</p>
+                    <a href="{{ url_for('products') }}" class="btn btn-primary">{{ _('Start Shopping') }}</a>
                 </div>
                 {% endif %}
+            </div>
+            
+            <!-- Account Settings -->
+            <div id="settings" class="mt-5">
+                <h3 class="section-title">{{ _('Account Settings') }}</h3>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <form method="POST" action="#">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ _('First Name') }}</label>
+                                    <input type="text" class="form-control" value="{{ current_user.first_name or '' }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ _('Last Name') }}</label>
+                                    <input type="text" class="form-control" value="{{ current_user.last_name or '' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">{{ _('Email') }}</label>
+                                <input type="email" class="form-control" value="{{ current_user.email }}" readonly>
+                                <small class="text-muted">{{ _('Email cannot be changed.') }}</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">{{ _('Phone') }}</label>
+                                <input type="tel" class="form-control" value="{{ current_user.phone or '' }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">{{ _('Address') }}</label>
+                                <textarea class="form-control" rows="3">{{ current_user.address or '' }}</textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">{{ _('Update Profile') }}</button>
+                        </form>
+                        
+                        <hr class="my-4">
+                        
+                        <h5>{{ _('Change Password') }}</h5>
+                        <form method="POST" action="#">
+                            <div class="mb-3">
+                                <label class="form-label">{{ _('Current Password') }}</label>
+                                <input type="password" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ _('New Password') }}</label>
+                                <input type="password" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ _('Confirm New Password') }}</label>
+                                <input type="password" class="form-control">
+                            </div>
+                            <button type="submit" class="btn btn-primary">{{ _('Change Password') }}</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
