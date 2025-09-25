@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-super-secret-key-change-this-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///party_yacout.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -150,7 +150,7 @@ def get_product_description(product):
 # Routes
 @app.route('/')
 def index():
-    featured_products = Product.query.filter_by(is_active=True).limit(4).all()
+    featured_products = Product.query.filter_by(is_active=True).limit(4).all() if Product.query.first() else []
     return render_template('index.html', featured_products=featured_products)
 
 @app.route('/products')
@@ -407,39 +407,91 @@ def about():
 def contact():
     return render_template('contact.html')
 
-# Initialize database and create admin user
-@app.before_first_request
-def create_tables():
-    db.create_all()
-    # Create admin user if not exists
-    if not User.query.filter_by(email='admin@partyyacout.com').first():
-        admin = User(
-            username='admin',
-            email='admin@partyyacout.com',
-            password='admin123',  # Change this in production!
-            first_name='Admin',
-            last_name='User',
-            is_admin=True
-        )
-        db.session.add(admin)
-        db.session.commit()
-    
-    # Create default categories if not exist
-    if Category.query.count() == 0:
-        categories = [
-            {'en': 'Birthday Parties', 'fr': 'Fêtes d\'anniversaire', 'ar': 'حفلات أعياد الميلاد'},
-            {'en': 'Wedding Decorations', 'fr': 'Décorations de mariage', 'ar': 'ديكورات الزفاف'},
-            {'en': 'Balloons', 'fr': 'Ballons', 'ar': 'البالونات'},
-            {'en': 'Tableware', 'fr': 'Articles de table', 'ar': 'أدوات المائدة'}
-        ]
-        for cat_data in categories:
-            category = Category(
-                name_en=cat_data['en'],
-                name_fr=cat_data['fr'],
-                name_ar=cat_data['ar']
+# Initialize database
+def initialize_database():
+    with app.app_context():
+        db.create_all()
+        
+        # Create admin user if not exists
+        if not User.query.filter_by(email='admin@partyyacout.com').first():
+            admin = User(
+                username='admin',
+                email='admin@partyyacout.com',
+                password='admin123',  # Change this in production!
+                first_name='Admin',
+                last_name='User',
+                is_admin=True
             )
-            db.session.add(category)
-        db.session.commit()
+            db.session.add(admin)
+            db.session.commit()
+            print("✅ Admin user created: admin@partyyacout.com / admin123")
+        
+        # Create default categories if not exist
+        if Category.query.count() == 0:
+            categories = [
+                {'en': 'Birthday Parties', 'fr': 'Fêtes d\'anniversaire', 'ar': 'حفلات أعياد الميلاد'},
+                {'en': 'Wedding Decorations', 'fr': 'Décorations de mariage', 'ar': 'ديكورات الزفاف'},
+                {'en': 'Balloons', 'fr': 'Ballons', 'ar': 'البالونات'},
+                {'en': 'Tableware', 'fr': 'Articles de table', 'ar': 'أدوات المائدة'}
+            ]
+            for cat_data in categories:
+                category = Category(
+                    name_en=cat_data['en'],
+                    name_fr=cat_data['fr'],
+                    name_ar=cat_data['ar']
+                )
+                db.session.add(category)
+            db.session.commit()
+            print("✅ Default categories created")
+        
+        # Create sample products if none exist
+        if Product.query.count() == 0:
+            sample_products = [
+                {
+                    'name_en': 'Birthday Party Set',
+                    'name_fr': 'Kit de fête d\'anniversaire',
+                    'name_ar': 'مجموعة حفلة عيد الميلاد',
+                    'description_en': 'Complete birthday party package with decorations, plates, cups, and balloons',
+                    'description_fr': 'Kit complet de fête d\'anniversaire avec décorations, assiettes, verres et ballons',
+                    'description_ar': 'طقم حفلة عيد ميلاد كامل مع ديكورات وأطباق وأكواب وبالونات',
+                    'price': 299.99,
+                    'original_price': 349.99,
+                    'discount': 14,
+                    'image': 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+                    'stock': 50
+                },
+                {
+                    'name_en': 'Balloon Garland Kit',
+                    'name_fr': 'Kit de guirlande de ballons',
+                    'name_ar': 'مجموعة إكليل البالونات',
+                    'description_en': 'Beautiful balloon garland kit for party decorations',
+                    'description_fr': 'Kit de guirlande de ballons pour décorations de fête',
+                    'description_ar': 'مجموعة إكليل بالونات جميلة لديكورات الحفلات',
+                    'price': 149.99,
+                    'image': 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+                    'stock': 30
+                }
+            ]
+            
+            category = Category.query.first()
+            for prod_data in sample_products:
+                product = Product(
+                    name_en=prod_data['name_en'],
+                    name_fr=prod_data['name_fr'],
+                    name_ar=prod_data['name_ar'],
+                    description_en=prod_data['description_en'],
+                    description_fr=prod_data['description_fr'],
+                    description_ar=prod_data['description_ar'],
+                    price=prod_data['price'],
+                    original_price=prod_data.get('original_price'),
+                    discount=prod_data.get('discount'),
+                    image=prod_data['image'],
+                    stock=prod_data['stock'],
+                    category_id=category.id if category else 1
+                )
+                db.session.add(product)
+            db.session.commit()
+            print("✅ Sample products created")
 
 # Context processor to make functions available in all templates
 @app.context_processor
@@ -454,4 +506,8 @@ def inject_global_variables():
     )
 
 if __name__ == '__main__':
+    # Initialize database before running
+    initialize_database()
+    print("🚀 Party Yacout starting on http://localhost:5000")
+    print("🔐 Admin login: admin@partyyacout.com / admin123")
     app.run(debug=True)

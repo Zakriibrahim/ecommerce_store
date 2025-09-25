@@ -1,0 +1,25 @@
+--- app.py.old	2024-01-20 12:00:00.000000000 +0000
++++ app.py.new	2024-01-20 12:00:01.000000000 +0000
+@@ -408,8 +408,8 @@
+     return redirect(request.referrer or url_for('index'))
+ 
+ # Initialize database and create admin user
+-@app.before_first_request
+-def create_tables():
++@app.before_request
++def initialize_app():
+     db.create_all()
+     # Create admin user if not exists
+     if not User.query.filter_by(email='admin@partyyacout.com').first():
+@@ -441,6 +441,11 @@
+             db.session.add(category)
+         db.session.commit()
+ 
++# Create tables on first request
++if not hasattr(app, 'tables_created'):
++    db.create_all()
++    app.tables_created = True
++
+ # Context processor to make functions available in all templates
+ @app.context_processor
+ def inject_global_variables():
